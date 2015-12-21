@@ -487,6 +487,92 @@ def do_plot(df, filename, xmin, xmax, ymin, ymax):
   #plt.axhline(y=1600000, color='k')
   ## print a vertical line
   #plt.axvline(x=74548, color='k', ls='dotted')
+  # splice_in.long
+  #plt.axhline(y=1662000, color='k', ls='dotted')
+  #plt.axvline(x=74548, color='k', ls='dotted')
+  # splice_in.short
+  if 'network_content' in filename:
+    first_packet = 480
+    gop_info = [
+        # (packet, pid, pts, type),
+        (72857, 481, 1624443, 'I'),
+        (73435, 481, 1639458, 'P'),
+        (73559, 481, 1627446, 'B'),
+        (73598, 481, 1630449, 'B'),
+        (73637, 481, 1633452, 'B'),
+        (73683, 481, 1636455, 'B'),
+        (73779, 481, 1654473, 'P'),
+        (73933, 481, 1642461, 'B'),
+        (74088, 481, 1645464, 'B'),
+        (74241, 481, 1648467, 'B'),
+        (74394, 481, 1651470, 'B'),
+        (74548, 481, 1666485, 'P'),
+        (74701, 481, 1657476, 'B'),
+        (74857, 481, 1660479, 'B'),
+        (75009, 481, 1663482, 'B'),
+        (75162, 481, 1669488, 'I'),
+    ]
+    gop_info.sort(key=lambda i: i[2])
+    for pts in (1629000, 1662000):
+      plt.axhline(y=pts, color='k', ls='dotted')
+      plt.text(xmin, pts, 'pts: %i' % pts, fontsize='x-small')
+    for (i, (packet, pid, pts, type)) in enumerate(gop_info):
+      plt.axvline(x=packet, color='k', ls='dotted')
+      plt.text(packet-50, ymax+3500, '%i %s' % (first_packet + i, type),
+          rotation=45, fontsize='x-small')
+  elif 'splice_in.short' in filename or 'splice_in.long' in filename or 'ad.' in filename:
+    plt.axhline(y=627447, color='k', ls='dotted')
+    plt.axhline(y=630450, color='k', ls='dotted')
+  elif 'demn_castle' in filename:
+    # demn-castle (len: 30.050000 sec, or 2704500)
+    # vlen = 2699697 (2879697+3003-183003) (len - 4803)
+    plt.axhline(y=183003, color='darkblue', ls='dotted')
+    plt.axhline(y=2879697, color='darkblue', ls='dotted')
+    plt.axhline(y=2879697+3003, color='darkblue', ls='dashdot')
+    # alen = 2701440+delta (2884443-183003) (len - 3060 - delta)
+    plt.axhline(y=183003, color='darkred', ls='dotted')
+    plt.axhline(y=2884443, color='darkred', ls='dotted')
+  elif 'ellen-0' in filename:
+    plt.axhline(y=1644156417, color='k', ls='dotted')
+    plt.axhline(y=1644165426, color='darkred', ls='dotted')
+    plt.axhline(y=1644180441, color='darkgreen', ls='dotted')
+    plt.axhline(y=1644189450, color='darkred', ls='dotted')
+    plt.axhline(y=1644201462, color='darkred', ls='dotted')
+    plt.axhline(y=1644204465, color='k', ls='dotted')
+  else:
+    #plt.axvline(x=73559, color='k', ls='dotted')
+    #plt.axhline(y=1650000, color='k')
+    #plt.axhline(y=1629000, color='k')
+    #plt.axhline(y=552372, color='k', ls='dotted')
+    #plt.axhline(y=549369, color='k', ls='dotted')
+    ## print a vertical line
+    #plt.axvline(x=24730, color='k', ls='dotted')
+    bf5_len = 15015
+    demn_len = 2704500
+    # splice-out
+    #so_pts = 2808325121; so_pts_frame = 2808322298; so_pts_iframe = 2808325301
+    #si_pts = 2811059650; si_pts_frame = 2811059532; si_pts_iframe = 2811065538
+    so_pts = 8377355484; so_pts_frame = 8377352661; so_pts_iframe = 8377319628
+    si_pts = 8380090013; si_pts_frame = 8380088394; si_pts_iframe = 8380058364
+    plt.axhline(y=so_pts, color='k', ls='dotted')
+    plt.axhline(y=so_pts_frame, color='g', ls='dashed')
+    plt.axhline(y=so_pts_frame + bf5_len, color='darkred', ls='dashdot')
+    plt.axhline(y=so_pts_frame + bf5_len + demn_len, color='darkred', ls='dashdot')
+    plt.axhline(y=so_pts_frame + bf5_len + demn_len + bf5_len, color='darkred', ls='dashdot')
+    plt.axhline(y=so_pts_iframe, color='indigo', ls='dashed')
+    # splice-in
+    plt.axhline(y=si_pts, color='k', ls='dotted')
+    plt.axhline(y=si_pts_frame, color='g', ls='dashed')
+    plt.axhline(y=si_pts_iframe, color='indigo', ls='dashed')
+    # other
+    plt.axhline(y=3817157558, color='indigo', ls='dashed')
+    plt.axhline(y=7869867742, color='k', ls='dotted')
+    plt.axhline(y=7869875249, color='g', ls='dashed')
+    plt.axhline(y=7869866249, color='g', ls='dotted')
+
+    plt.axhline(y=1809976441, color='k', ls='dotted')
+    plt.axhline(y=1812710970, color='k', ls='dotted')
+    plt.axhline(y=4854415000, color='g', ls='dashed')
   plt.savefig(filename)
 
 
