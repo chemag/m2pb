@@ -1,0 +1,12 @@
+*~
+.cproject
+*.gcda
+*.gcno
+*.info
+*.[oa]
+*.pb.cc
+*.pb.h
+.protos_done
+*.so
+*/m2pb
+*/*_pb2.py

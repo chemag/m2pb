@@ -1,0 +1,187 @@
+// Copyright Google Inc. Apache 2.0.
+
+syntax = "proto2";
+
+// MPEG-2 Part 1, Systems aka ISO/IEC 13818-1 aka ITU-T Recommendation H.222.0
+
+message Mpeg2Ts {
+  // packet number/byte offset
+  optional int64 packet = 1;
+  optional int64 byte = 2;
+
+  // A parsed mpeg2-ts packet.
+  optional Mpeg2TsPacket parsed = 3;
+
+  // A non-parsed mpeg2-ts packet.
+  optional bytes raw = 4;
+}
+
+message Mpeg2TsPacket {
+  optional Mpeg2TsHeader header = 1;
+  optional AdaptationField adaptation_field = 2;
+  optional PesPacket pes_packet = 3;
+  optional PsiPacket psi_packet = 4;
+  optional bytes data_bytes = 5;
+}
+
+
+// mpeg-ts header
+message Mpeg2TsHeader {
+  optional bool transport_error_indicator = 1;
+  optional bool payload_unit_start_indicator = 2;
+  optional bool transport_priority = 3;
+  optional int32 pid = 4;
+  optional int32 transport_scrambling_control = 5;
+  optional bool adaptation_field_exists = 6;
+  optional bool payload_exists = 7;
+  optional int32 continuity_counter = 8;
+}
+
+message PCR {
+  optional int64 base = 1;
+  optional int32 extension = 2;
+}
+
+message AdaptationFieldExtension {
+  optional int32 adaptation_field_extension_length = 1;
+  optional bool ltw_valid_flag = 2;
+  optional int32 ltw_offset = 3;
+  optional int32 piecewise_rate = 4;
+  optional int32 splice_type = 5;
+  optional int64 dts_next_au = 6;
+}
+
+message AdaptationField {
+  optional int32 adaptation_field_length = 1;
+  optional bool discontinuity_indicator = 2;
+  optional bool random_access_indicator = 3;
+  optional bool elementary_stream_priority_indicator = 4;
+  optional bool splicing_point_flag = 5;
+  optional PCR pcr = 6;
+  optional PCR opcr = 7;
+  optional int32 splice_countdown = 8;
+  optional bytes transport_private_data = 9;
+  optional AdaptationFieldExtension adaptation_field_extension = 10;
+}
+
+message PesPacket {
+  optional int32 stream_id = 1;
+  enum StreamIdType {
+    // PES packet stream ids
+    // See ISO/IEC 13818-1 Table 2-17 and Table 2-18
+    // These are specifically the stream ids used to decide if a PES packet
+    // contains header data, filler bytes or what
+    STREAM_ID_OTHER = 0;
+    STREAM_ID_PROGRAM_STREAM_MAP = 0xbc;
+    STREAM_ID_PRIVATE_STREAM_1   = 0xbd;
+    STREAM_ID_PADDING_STREAM     = 0xbe;
+    STREAM_ID_PRIVATE_STREAM_2   = 0xbf;
+    STREAM_ID_AUDIO_13818        = 0xc0;
+    STREAM_ID_VIDEO_13818        = 0xe0;
+    STREAM_ID_ECM_STREAM         = 0xf0;
+    STREAM_ID_EMM_STREAM         = 0xf1;
+    STREAM_ID_DSMCC_STREAM       = 0xf2;
+    STREAM_ID_13522_STREAM       = 0xf3;
+    STREAM_ID_H222_A_STREAM      = 0xf4;
+    STREAM_ID_H222_B_STREAM      = 0xf5;
+    STREAM_ID_H222_C_STREAM      = 0xf6;
+    STREAM_ID_H222_D_STREAM      = 0xf7;
+    STREAM_ID_H222_E_STREAM      = 0xf8;
+    STREAM_ID_ANCILLARY_STREAM   = 0xf9;
+    STREAM_ID_PROGRAM_STREAM_DIRECTORY = 0xff;
+  }
+  optional StreamIdType stream_id_type = 2;
+  optional int32 pes_packet_length = 3;
+  optional int32 pes_scrambling_control = 4;
+  optional int32 pes_priority = 5;
+  optional bool data_alignment_indicator = 6;
+  optional bool copyright = 7;
+  optional bool original_or_copy = 8;
+  optional int32 pes_header_data_length = 9;
+  optional int64 pts = 10;
+  optional int64 dts = 11;
+  optional PCR escr = 12;
+  optional int32 es_rate = 13;
+  optional DsmTrickMode dsm_trick_mode = 14;
+  optional int32 additional_copy_info = 15;
+  optional int32 previous_pes_packet_crc = 16;
+  optional PesExtension pes_extension = 17;
+  optional bytes padding_byte = 18;
+}
+
+message DsmTrickMode {
+  optional int32 trick_mode_control = 1;
+  optional int32 field_id = 2;
+  optional bool intra_slice_refresh = 3;
+  optional int32 rep_cntrl = 4;
+  optional int32 frequency_truncation = 5;
+}
+
+message PesExtension {
+  optional bytes pes_private_data = 1;
+  optional bytes pack_header = 2;
+  optional int32 program_packet_sequence_counter = 3;
+  optional bool mpeg1_mpeg2_identifier = 4;
+  optional int32 original_stuff_length = 5;
+  optional bool p_std_buffer_scale = 6;
+  optional int32 p_std_buffer_size = 7;
+  optional bytes pes_extension_field = 8;
+}
+
+message PsiPacket {
+  optional bytes pointer_field = 1;
+  repeated ProgramAssociationSection program_association_section = 2;
+  repeated ProgramMapSection program_map_section = 3;
+  repeated OtherPsiSection other_psi_section = 4;
+}
+
+message ProgramInformation {
+  optional int32 program_number = 1;
+  optional int32 network_pid = 2;
+  optional int32 program_map_pid = 3;
+}
+
+message ProgramAssociationSection {
+  optional int32 table_id = 1;
+  optional int32 section_length = 2;
+  optional int32 transport_stream_id = 3;
+  optional int32 version_number = 4;
+  optional bool current_next_indicator = 5;
+  optional int32 section_number = 6;
+  optional int32 last_section_number = 7;
+  repeated ProgramInformation program_information = 8;
+  optional int32 crc_32 = 9;
+}
+
+message Descriptor {
+  optional int32 tag = 1;
+  optional int32 length = 2;
+  optional bytes data = 3;
+}
+
+message StreamDescription {
+  optional int32 stream_type = 1;
+  optional int32 elementary_pid = 2;
+  optional int32 es_info_length = 3;
+  repeated Descriptor mpegts_descriptor = 4;
+}
+
+message ProgramMapSection {
+  optional int32 table_id = 1;
+  optional int32 section_length = 2;
+  optional int32 program_number = 3;
+  optional int32 version_number = 4;
+  optional bool current_next_indicator = 5;
+  optional int32 section_number = 6;
+  optional int32 last_section_number = 7;
+  optional int32 pcr_pid = 8;
+  optional int32 program_info_length = 9;
+  repeated Descriptor mpegts_descriptor = 10;
+  repeated StreamDescription stream_description = 11;
+  optional int32 crc_32 = 12;
+}
+
+message OtherPsiSection {
+  optional int32 table_id = 1;
+  optional bytes remaining = 2;
+}
