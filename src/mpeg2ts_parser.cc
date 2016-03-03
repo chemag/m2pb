@@ -1347,6 +1347,7 @@ int Mpeg2TsParser::ParsePsiPacket(const uint8_t *buf, int len,
   if ((len - bi) < pointer_field_length)
     return -1;
   psi_packet->set_pointer_field(buf + bi, pointer_field_length);
+  bi += pointer_field_length;
   // parse the PSI sections
   while (bi < len) {
     // identify the following section
