@@ -542,7 +542,12 @@ int mpegts_read_text(status_t *status) {
     // write binary protobuf
     uint8_t out[MPEG_TS_PACKET_SIZE];
     int outlen = mpeg2ts_parser.DumpPacket(mpeg2ts, out, sizeof(out));
-    fwrite(out, outlen, sizeof(char), fout);
+    if (outlen < 0) {
+      printf("Failed to dump protobuf: \"%s\"\n",
+          mpeg2ts.ShortDebugString().c_str());
+    } else {
+      fwrite(out, outlen, sizeof(char), fout);
+    }
   }
 
   /* close in/out files */
