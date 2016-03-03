@@ -76,13 +76,15 @@ def get_opts(argv):
   parser_pts.set_defaults(subcommand='pts')
   parser_summary = subparsers.add_parser('summary', help='summary')
   parser_summary.set_defaults(subcommand='summary')
+  parser_sample = subparsers.add_parser('sample', help='sample')
+  parser_sample.set_defaults(subcommand='sample')
   # do the parsing
-  for p in (parser, parser_pts, parser_summary):
+  for p in (parser, parser_pts, parser_summary, parser_sample):
     p.add_argument('-o', '--output', action='store',
         dest='output_filename',
         metavar='OUTPUT_FILENAME',
         help='output filename',)
-  for p in (parser_pts, parser_summary):
+  for p in (parser_pts, parser_summary, parser_sample):
     p.add_argument('input_file', nargs=1, help='input log file')
     p.add_argument('remaining', nargs=argparse.REMAINDER)
   return parser.parse_args(argv[1:])
@@ -99,6 +101,10 @@ video_stream_type_l = [
 audio_stream_type_l = [
     0x0f,  # 13818-7 Audio with ADTS transport syntax
     0x81,  # User private (commonly Dolby/AC-3 in ATSC)
+]
+
+scte35_stream_type_l = [
+    0x86,  # SCTE-35 cue tones
 ]
 
 
@@ -127,6 +133,36 @@ headerre = r"""
 
 # PAT
 # packet: 0 byte: 0 parsed { header { transport_error_indicator: false payload_unit_start_indicator: true transport_priority: false pid: 0 transport_scrambling_control: 0 adaptation_field_exists: false payload_exists: true continuity_counter: 0 } psi_packet { pointer_field: "" program_association_section { table_id: 0 transport_stream_id: 1 version_number: 0 current_next_indicator: true section_number: 0 last_section_number: 0 program_information { program_number: 1 program_map_pid: 480 } crc_32: 760248324 } } }
+# packet: 1501 byte: 282188 parsed { header { transport_error_indicator: false payload_unit_start_indicator: true transport_priority: false pid: 0 transport_scrambling_control: 0 adaptation_field_exists: false payload_exists: true continuity_counter: 1 } psi_packet { pointer_field: "" program_association_section { table_id: 0 section_length: 41 transport_stream_id: 166 version_number: 25 current_next_indicator: true section_number: 0 last_section_number: 0 program_information { program_number: 0 network_pid: 4094 } program_information { program_number: 2 program_map_pid: 41 } program_information { program_number: 3 program_map_pid: 105 } program_information { program_number: 151 program_map_pid: 64 } program_information { program_number: 4 program_map_pid: 169 } program_information { program_number: 5 program_map_pid: 201 } program_information { program_number: 6 program_map_pid: 233 } program_information { program_number: 7 program_map_pid: 297 } crc_32: -1183693896 } } }
+patre = r"""
+    parsed
+    .*?
+    header\s{
+      \s
+      .*?
+      \s
+      pid:\s(?P<pid>[0-9]+)
+      \s
+      .*?
+      \s
+      program_association_section\s{
+      .*?
+    (?P<rem>program_information\s{.*)
+"""
+
+patinfore = r"""
+    program_information\s{
+      \s
+      program_number:\s(?P<program_number>[0-9]+)
+      \s
+      (program_map_pid:\s(?P<program_map_pid>[0-9]+))?
+      (network_pid:\s(?P<network_pid>[0-9]+))?
+      \s
+      [^}]*
+    }
+    (?P<rem>.*)
+"""
+
 
 # PMT
 # packet: 1 byte: 188 parsed { header { transport_error_indicator: false payload_unit_start_indicator: true transport_priority: false pid: 480 transport_scrambling_control: 0 adaptation_field_exists: false payload_exists: true continuity_counter: 0 } psi_packet { pointer_field: "" program_map_section { table_id: 2 program_number: 1 version_number: 0 current_next_indicator: true section_number: 0 last_section_number: 0 pcr_pid: 481 mpegts_descriptor { tag: 14 length: 3 data: "\300<x" } stream_description { stream_type: 27 elementary_pid: 481 mpegts_descriptor { tag: 40 length: 4 data: "M@(?" } mpegts_descriptor { tag: 14 length: 3 data: "\300:\230" } } stream_description { stream_type: 129 elementary_pid: 482 mpegts_descriptor { tag: 5 length: 4 data: "AC-3" } mpegts_descriptor { tag: 129 length: 7 data: "\006(\005\377\037\001?" } mpegts_descriptor { tag: 10 length: 4 data: "und\000" } mpegts_descriptor { tag: 14 length: 3 data: "\300\001\340" } } crc_32: 1966564032 } } }
@@ -198,39 +234,73 @@ scte35re = 'pid: 0x01ea pusi:'
 
 unknown_stream_type_l = []
 
+# packet: 1501 byte: 282188 parsed { header { transport_error_indicator: false payload_unit_start_indicator: true transport_priority: false pid: 0 transport_scrambling_control: 0 adaptation_field_exists: false payload_exists: true continuity_counter: 1 } psi_packet { pointer_field: "" program_association_section { table_id: 0 section_length: 41 transport_stream_id: 166 version_number: 25 current_next_indicator: true section_number: 0 last_section_number: 0 program_information { program_number: 0 network_pid: 4094 } program_information { program_number: 2 program_map_pid: 41 } program_information { program_number: 3 program_map_pid: 105 } program_information { program_number: 151 program_map_pid: 64 } program_information { program_number: 4 program_map_pid: 169 } program_information { program_number: 5 program_map_pid: 201 } program_information { program_number: 6 program_map_pid: 233 } program_information { program_number: 7 program_map_pid: 297 } crc_32: -1183693896 } } }
+
+def parse_pat(l):
+  # remove the header
+  pat_match = re.search(patre, l, re.X)
+  if not pat_match:
+    return
+  program_info = {}
+  # parse the stream_description fields
+  rem = pat_match.group('rem')
+  pat_match = re.search(patinfore, rem, re.X)
+  while pat_match:
+    program_number = int(pat_match.group('program_number'))
+    program_info[program_number] = {}
+    for tag in ('network_pid', 'program_map_pid'):
+      if pat_match.group(tag) is not None:
+        program_info[program_number][tag] = int(pat_match.group(tag))
+    rem = pat_match.group('rem')
+    pat_match = re.search(patinfore, rem, re.X)
+  return program_info
+
+
+TYPE_VIDEO = 'video'
+TYPE_AUDIO = 'audio'
+TYPE_SCTE35 = 'scte35'
+TYPE_OTHER = 'other'
+
 def parse_pmt(l):
-  global videostr_pid
-  global audiostr_pid_d
   # remove the header
   pmt_match = re.search(pmtre, l, re.X)
   if not pmt_match:
     return
+  pid = int(pmt_match.group('pid'))
+  stream_info = {}
   # parse the stream_description fields
   rem = pmt_match.group('rem')
-  pmt = {}
   pmt_match = re.search(pmtstreamre, rem, re.X)
   while pmt_match:
     elementary_pid = int(pmt_match.group('elementary_pid'))
+    stream_info[elementary_pid] = {}
     stream_type = int(pmt_match.group('stream_type'))
+    stream_info[elementary_pid]['stream_type'] = stream_type
+    # simplify the stream type
     rem = pmt_match.group('rem')
     if stream_type in video_stream_type_l:
-      pmt['video'] = elementary_pid
+      stream_info[elementary_pid]['type'] = TYPE_VIDEO
     elif stream_type in audio_stream_type_l:
-      if 'audio' not in pmt:
-        pmt['audio'] = []
-      pmt['audio'].append(elementary_pid)
-    else:  # unknown
-      if stream_type not in unknown_stream_type_l:
-        print 'unknown stream_type: %s' % stream_type
-        unknown_stream_type_l.append(stream_type)
+      stream_info[elementary_pid]['type'] = TYPE_AUDIO
+    elif stream_type in scte35_stream_type_l:
+      stream_info[elementary_pid]['type'] = TYPE_SCTE35
+    else:
+      stream_info[elementary_pid]['type'] = TYPE_OTHER
     pmt_match = re.search(pmtstreamre, rem, re.X)
+  return pid, stream_info
+
+
+def parse_pmt_old(l):
+  global videostr_pid
+  global audiostr_pid_d
+  _, stream_info = parse_pmt(l)
   # replace pmts
-  if 'video' in pmt:
-    videostr_pid = pmt['video']
   audiostr_pid_d = {}
   i = 1
-  if 'audio' in pmt:
-    for pid in pmt['audio']:
+  for pid, info in stream_info.iteritems():
+    if info['type'] == TYPE_VIDEO:
+      videostr_pid = pid
+    elif info['type'] == TYPE_AUDIO:
       audiostr_pid_d[pid] = i
       i += 1
 
@@ -339,7 +409,7 @@ def dump_frame_info_inefficient(input_file, delta_l, debug, pusi_skip=False):
       continue
 
     if pmtstr in l:
-      parse_pmt(l)
+      parse_pmt_old(l)
 
     elif pid == videostr_pid:
       # use the packet number to clock the dump
@@ -632,6 +702,84 @@ def dump_frame_summary(input_file, delta_l, debug):
     other_pkts_ = 0
 
 
+def dump_frame_sample(input_file, output_filename, debug):
+  lst = []
+  command = [M2PB, 'totxt', input_file]
+  proc = subprocess.Popen(command, stdout=subprocess.PIPE)
+  found_pat = False
+  pmt_pid_list = []
+  other_pid_list = []
+  if output_filename is not None:
+    fout = open(output_filename, 'w+')
+  else:
+    fout = sys.stdout
+  ferr = sys.stderr
+  for line in iter(proc.stdout.readline,''):
+    l = line.rstrip()
+    # use simpler comparison for faster parsing
+    #header_match = re.search(headerre, l, re.X)
+    #if not header_match:
+    #  print '#invalid line: %s' % l
+    #  continue
+    #packet = long(header_match.group('packet'))
+    #pid = int(header_match.group('pid'))
+    #pusi = header_match.group('pusi') == 'true'
+    parts = l.split(' ')
+    if parts[0] != 'packet:' or len(parts) < 16:
+      continue
+    packet = long(parts[1])
+    if parts[4] == 'raw:':
+      continue
+    pid = int(parts[15])
+    pusi = parts[11] == 'true'
+
+    # first look for a valid PAT
+    if not found_pat and pid != 0:
+      continue
+
+    if not found_pat and pid == 0:
+      found_pat = True
+      program_info = parse_pat(l)
+      for program_number, program_information in program_info.iteritems():
+        for k, v in program_information.iteritems():
+          if k == 'program_map_pid':
+            pmt_pid_list.append(v)
+          else:
+            other_pid_list.append(v)
+      fout.write(l + '\n')
+      ferr.write("lists: %s, %s\n" % (pmt_pid_list, other_pid_list))
+      continue
+
+    # second look for an expected PMT
+    if pid in pmt_pid_list:
+      try:
+        _, stream_info = parse_pmt(l)
+      except:
+        # invalid pmt: try again
+        continue
+      other_pid_list += stream_info.keys()
+      pmt_pid_list.remove(pid)
+      fout.write(l + '\n')
+      ferr.write("lists: %s, %s\n" % (pmt_pid_list, other_pid_list))
+      continue
+
+    # check whether the pid is in the other list
+    if pid in other_pid_list:
+      other_pid_list.remove(pid)
+      fout.write(l + '\n')
+      ferr.write("lists: %s, %s\n" % (pmt_pid_list, other_pid_list))
+      continue
+
+    # exit if no more packets needed
+    if not pmt_pid_list and not other_pid_list:
+      break
+
+  if output_filename is not None:
+    fout.close()
+
+
+
+
 def main(argv):
   global videostr_pid
   global audiostr_pid_d
@@ -667,6 +815,9 @@ def main(argv):
     print 'written file %s' % filename
   elif vals.subcommand == 'summary':
     dump_frame_summary(vals.input_file[0], vals.delta, vals.debug)
+  elif vals.subcommand == 'sample':
+    dump_frame_sample(vals.input_file[0], vals.output_filename, vals.debug)
+
 
 
 if __name__ == '__main__':
