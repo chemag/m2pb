@@ -4,14 +4,14 @@ all: .protos_done m2pb
 
 CXX = g++
 CFLAGS = -g -O0 -Wall -pedantic -std=c++0x
-LIBS+=-lprotobuf
+LDFLAGS=mpeg2ts_parser.o mpeg2ts_reader.o \
+		mpeg2ts.pb.o protobuf_utils.o ac3_utils.o h264_utils.o
+LIBS+=-lprotobuf -lpthread
 
 m2pb: m2pb.cc mpeg2ts_parser.o mpeg2ts_reader.o mpeg2ts.pb.o \
     protobuf_utils.o ac3_utils.o h264_utils.o
 	$(CXX) $(CFLAGS) -c m2pb.cc -o m2pb.o
-	$(CXX) $(CFLAGS) -o m2pb m2pb.o mpeg2ts_parser.o mpeg2ts_reader.o \
-      mpeg2ts.pb.o protobuf_utils.o ac3_utils.o h264_utils.o \
-      $(LIBS)
+	$(CXX) $(CFLAGS) -o m2pb m2pb.o $(LDFLAGS) $(LIBS)
 
 mpeg2ts_parser.o: mpeg2ts_parser.cc mpeg2ts_parser.h mpeg2ts.pb.h
 	$(CXX) $(CFLAGS) -c mpeg2ts_parser.cc -o mpeg2ts_parser.o
@@ -45,6 +45,13 @@ mpeg2ts.pb.h: mpeg2ts.proto
 mpeg2ts_pb2.py: mpeg2ts.proto
 	echo "Building mpeg2ts_pb2.py"
 	$(PROTOC) -I=. --python_out=. $<
+
+mpeg2ts_parser_test: mpeg2ts_parser_test.cc
+	$(CXX) $(CFLAGS) -c mpeg2ts_parser_test.cc -o mpeg2ts_parser_test.o
+	$(CXX) $(CFLAGS) -o mpeg2ts_parser_test mpeg2ts_parser_test.o $(LDFLAGS) $(LIBS) -lgmock
+
+test: mpeg2ts_parser_test
+	./mpeg2ts_parser_test
 
 clean:
 	rm -f m2pb.o m2pb

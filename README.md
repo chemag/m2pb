@@ -184,3 +184,12 @@ the "dumper" (the protobuf to mpeg-ts binary converter).
 m2pb supports mpeg-ts resync (it will dump any chunk in the input stream
 that is not an mpeg-ts packet as a non-parsed packet).
 
+
+
+## Manual
+
+The main dependency is protobuf.
+
+In order to run the tests, you also need
+[googletest](https://github.com/google/googletest).
+
