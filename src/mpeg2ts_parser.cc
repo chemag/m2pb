@@ -1352,16 +1352,24 @@ int Mpeg2TsParser::ParsePsiPacket(const uint8_t *buf, int len,
   while (bi < len) {
     // identify the following section
     int table_id = buf[bi];
+    res = -1;
     if (table_id == MPEG_TS_TABLE_ID_PROGRAM_ASSOCIATION_SECTION) {
       res = ParseProgramAssociationSection(buf + bi, len - bi,
           psi_packet->add_program_association_section());
+      if (res < 0) {
+        psi_packet->clear_program_association_section();
+      }
     } else if (table_id == MPEG_TS_TABLE_ID_TS_PROGRAM_MAP_SECTION) {
       res = ParseProgramMapSection(buf + bi, len - bi,
           psi_packet->add_program_map_section());
+      if (res < 0) {
+        psi_packet->clear_program_map_section();
+      }
     } else if (table_id == MPEG_TS_TABLE_ID_FORBIDDEN) {
       // remaining bytes are data bytes
       break;
-    } else {
+    }
+    if (res < 0) {
       // unsupported PSI Section
       res = ParseOtherPsiSection(buf + bi, len - bi,
           psi_packet->add_other_psi_section());
@@ -1431,6 +1439,20 @@ int Mpeg2TsParser::ParseProgramAssociationSection(const uint8_t *buf, int len,
   int table_id = buf[bi];
   program_association_section->set_table_id(table_id);
   bi += 1;
+  // check next byte
+  int section_syntax_indicator = (buf[bi] & 0x80) >> 7;
+  if (section_syntax_indicator != 1)
+    return -1;
+  int zero = (buf[bi] & 0x40) >> 6;
+  if (zero != 0)
+    return -1;
+  int reserved = (buf[bi] & 0x30) >> 4;
+  if (reserved != 3)
+    return -1;
+  // "...first two bits of [section_length] shall be '00'. "
+  int first_two_bits_of_section_length = (buf[bi] & 0x0c) >> 2;
+  if (first_two_bits_of_section_length != 0)
+    return -1;
   int section_length = ((buf[bi] & 0x0f) << 8) | buf[bi + 1];
   program_association_section->set_section_length(section_length);
   bi += 2;
@@ -1568,6 +1590,20 @@ int Mpeg2TsParser::ParseProgramMapSection(const uint8_t *buf, int len,
   int table_id = buf[bi];
   program_map_section->set_table_id(table_id);
   bi += 1;
+  // check next byte
+  int section_syntax_indicator = (buf[bi] & 0x80) >> 7;
+  if (section_syntax_indicator != 1)
+    return -1;
+  int zero = (buf[bi] & 0x40) >> 6;
+  if (zero != 0)
+    return -1;
+  int reserved = (buf[bi] & 0x30) >> 4;
+  if (reserved != 3)
+    return -1;
+  // "...first two bits of [section_length] shall be '00'. "
+  int first_two_bits_of_section_length = (buf[bi] & 0x0c) >> 2;
+  if (first_two_bits_of_section_length != 0)
+    return -1;
   int section_length = ((buf[bi] & 0x0f) << 8) | buf[bi + 1];
   program_map_section->set_section_length(section_length);
   bi += 2;

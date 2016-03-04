@@ -54,6 +54,6 @@ test: mpeg2ts_parser_test
 	./mpeg2ts_parser_test
 
 clean:
-	rm -f m2pb.o m2pb
+	rm -f m2pb.o m2pb mpeg2ts_parser_test
 	rm -rf *.pb.* .protos_done *.o *.pyc mpeg2ts_pb2.py
 
