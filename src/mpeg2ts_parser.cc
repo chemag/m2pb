@@ -1442,7 +1442,7 @@ int Mpeg2TsParser::ParseProgramAssociationSection(const uint8_t *buf, int len,
   section_length += bi;
   if (len < section_length)
     return -1;
-  int transport_stream_id = buf[bi] | buf[bi + 1];
+  int transport_stream_id = (buf[bi] << 8) | buf[bi + 1];
   program_association_section->set_transport_stream_id(transport_stream_id);
   bi += 2;
   int version_number = ((buf[bi] & 0x3e) >> 1);
