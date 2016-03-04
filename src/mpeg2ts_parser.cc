@@ -1359,7 +1359,7 @@ int Mpeg2TsParser::ParsePsiPacket(const uint8_t *buf, int len,
       res = ParseProgramMapSection(buf + bi, len - bi,
           psi_packet->add_program_map_section());
     } else if (table_id == MPEG_TS_TABLE_ID_FORBIDDEN) {
-      bi = len;
+      // remaining bytes are data bytes
       break;
     } else {
       // unsupported PSI Section
@@ -1417,11 +1417,6 @@ int Mpeg2TsParser::DumpPsiPacket(const PsiPacket &psi_packet,
     if (res < 0)
       return -1;
     bi += res;
-  }
-
-  // rem is 0xff
-  while (bi < len) {
-    buf[bi++] = 0xff;
   }
 
   return bi;
