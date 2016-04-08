@@ -1500,7 +1500,7 @@ int Mpeg2TsParser::DumpProgramAssociationSection(
 
   if (len < 1)
     return -1;
-  buf[bi] = MPEG_TS_TABLE_ID_PROGRAM_ASSOCIATION_SECTION;
+  BitSet(buf+bi, 0, 8, program_association_section.table_id());
   bi += 1;
 
   // section_syntax_indicator
@@ -1668,7 +1668,7 @@ int Mpeg2TsParser::DumpProgramMapSection(
 
   if (len < 1)
     return -1;
-  buf[bi] = MPEG_TS_TABLE_ID_TS_PROGRAM_MAP_SECTION;
+  BitSet(buf+bi, 0, 8, program_map_section.table_id());
   bi += 1;
 
   // section_syntax_indicator
