@@ -18,6 +18,8 @@
 #define MPEG_TS_TABLE_ID_TS_DESCRIPTION_SECTION 0x03
 #define MPEG_TS_TABLE_ID_14496_SCENE_DESCRIPTION_SECTION 0x04
 #define MPEG_TS_TABLE_ID_14496_OBJECT_DESCRIPTION_SECTION 0x05
+#define MPEG_TS_TABLE_ID_DVB_SERVICE_DESCRIPTION_TABLE_CURRENT 0x42
+#define MPEG_TS_TABLE_ID_DVB_SERVICE_DESCRIPTION_TABLE_OTHER 0x46
 #define MPEG_TS_TABLE_ID_FORBIDDEN 0xff
 
 class Mpeg2TsParser {
@@ -104,6 +106,18 @@ class Mpeg2TsParser {
   int ParseStreamDescription(const uint8_t *buf, int len,
       StreamDescription *stream_description);
   int DumpStreamDescription(const StreamDescription &stream_description,
+      uint8_t *buf, int len);
+
+  int ParseServiceDescriptionSection(const uint8_t *buf, int len,
+      ServiceDescriptionSection *service_description_section);
+  int DumpServiceDescriptionSection(
+      const ServiceDescriptionSection &service_description_section,
+      uint8_t *buf, int len);
+
+  int ParseServiceDescription(const uint8_t *buf, int len,
+      ServiceDescription *service_description);
+  int DumpServiceDescription(
+      const ServiceDescription &service_description,
       uint8_t *buf, int len);
 
   int ParseOtherPsiSection(const uint8_t *buf, int len,

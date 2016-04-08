@@ -132,7 +132,8 @@ message PsiPacket {
   optional bytes pointer_field = 1;
   repeated ProgramAssociationSection program_association_section = 2;
   repeated ProgramMapSection program_map_section = 3;
-  repeated OtherPsiSection other_psi_section = 4;
+  repeated ServiceDescriptionSection service_description_section = 4;
+  repeated OtherPsiSection other_psi_section = 5;
 }
 
 message ProgramInformation {
@@ -179,6 +180,31 @@ message ProgramMapSection {
   repeated Descriptor mpegts_descriptor = 10;
   repeated StreamDescription stream_description = 11;
   optional int32 crc_32 = 12;
+}
+
+message ServiceDescription {
+  optional int32 service_id = 1;
+  optional int32 reserved_future_use = 2;
+  optional bool eit_schedule_flag = 3;
+  optional bool eit_present_following_flag = 4;
+  optional int32 running_status = 5;
+  optional bool free_ca_mode = 6;
+  optional int32 descriptors_loop_length = 7;
+  repeated Descriptor mpegts_descriptor = 8;
+}
+
+message ServiceDescriptionSection {
+  optional int32 table_id = 1;
+  optional bool section_syntax_indicator = 2;
+  optional int32 section_length = 3;
+  optional int32 transport_stream_id = 4;
+  optional int32 version_number = 5;
+  optional bool current_next_indicator = 6;
+  optional int32 section_number = 7;
+  optional int32 last_section_number = 8;
+  optional int32 original_network_id = 9;
+  repeated ServiceDescription service_description = 10;
+  optional int32 crc_32 = 11;
 }
 
 message OtherPsiSection {

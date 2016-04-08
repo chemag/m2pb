@@ -197,7 +197,7 @@ int Mpeg2TsParser::DumpValidPacket(const Mpeg2TsPacket &mpeg2ts_packet,
     } else {
       return -1;
     }
-	}
+  }
 
   if (mpeg2ts_packet.has_data_bytes()) {
     if (mpeg2ts_packet.data_bytes().length() > (unsigned int)len)
@@ -1366,6 +1366,15 @@ int Mpeg2TsParser::ParsePsiPacket(const uint8_t *buf, int len,
       psi_packet->clear_program_map_section();
       return -1;
     }
+  } else if ((table_id ==
+      MPEG_TS_TABLE_ID_DVB_SERVICE_DESCRIPTION_TABLE_CURRENT) ||
+      (table_id == MPEG_TS_TABLE_ID_DVB_SERVICE_DESCRIPTION_TABLE_OTHER)) {
+    res = ParseServiceDescriptionSection(buf + bi, len - bi,
+        psi_packet->add_service_description_section());
+    if (res < 0) {
+      psi_packet->clear_service_description_section();
+      return -1;
+    }
   } else if (table_id == MPEG_TS_TABLE_ID_FORBIDDEN) {
     // remaining bytes are data bytes
     res = 0;
@@ -1411,6 +1420,15 @@ int Mpeg2TsParser::DumpPsiPacket(const PsiPacket &psi_packet,
   for (int i = 0; i < psi_packet.program_map_section_size(); ++i) {
     res = DumpProgramMapSection(
         psi_packet.program_map_section(i), buf + bi, len - bi);
+    if (res < 0)
+      return -1;
+    bi += res;
+  }
+
+  // dump SDT sections
+  for (int i = 0; i < psi_packet.service_description_section_size(); ++i) {
+    res = DumpServiceDescriptionSection(
+        psi_packet.service_description_section(i), buf + bi, len - bi);
     if (res < 0)
       return -1;
     bi += res;
@@ -1834,6 +1852,213 @@ int Mpeg2TsParser::DumpOtherPsiSection(
     return -1;
   res = other_psi_section.remaining().copy((char *)(buf + bi), len - bi);
   bi += res;
+  return bi;
+}
+
+
+int Mpeg2TsParser::ParseServiceDescriptionSection(const uint8_t *buf, int len,
+    ServiceDescriptionSection *service_description_section) {
+  int bi = 0;
+  if ((len - bi) < 8)
+    return -1;
+  int table_id = buf[bi];
+  service_description_section->set_table_id(table_id);
+  bi += 1;
+  // check next byte
+  int section_syntax_indicator = (buf[bi] & 0x80) >> 7;
+  if (section_syntax_indicator != 1)
+    return -1;
+  int reserved_future_use = (buf[bi] & 0x40) >> 6;
+  if (reserved_future_use != 1)
+    return -1;
+  int reserved = (buf[bi] & 0x30) >> 4;
+  if (reserved != 3)
+    return -1;
+  // "...first two bits of [section_length] shall be '00'. "
+  int first_two_bits_of_section_length = (buf[bi] & 0x0c) >> 2;
+  if (first_two_bits_of_section_length != 0)
+    return -1;
+  int section_length = ((buf[bi] & 0x0f) << 8) | buf[bi + 1];
+  service_description_section->set_section_length(section_length);
+  bi += 2;
+  //section_length += bi;
+  // TODO(chema): need to support section_length > len
+  // rem_length is the last byte pointed by this section
+  int rem_length = std::min(len, section_length + bi);
+  int transport_stream_id = (buf[bi] << 8) | buf[bi + 1];
+  service_description_section->set_transport_stream_id(transport_stream_id);
+  bi += 2;
+  // reserved
+  reserved = (buf[bi] & 0xc0) >> 6;
+  if (reserved != 3)
+    return -1;
+  int version_number = ((buf[bi] & 0x3e) >> 1);
+  service_description_section->set_version_number(version_number);
+  int current_next_indicator = (buf[bi] & 0x01);
+  service_description_section->set_current_next_indicator(
+      current_next_indicator);
+  bi += 1;
+  int section_number = buf[bi];
+  service_description_section->set_section_number(section_number);
+  bi += 1;
+  int last_section_number = buf[bi];
+  service_description_section->set_last_section_number(last_section_number);
+  bi += 1;
+  int original_network_id = (buf[bi] << 8) | buf[bi + 1];
+  service_description_section->set_original_network_id(original_network_id);
+  bi += 2;
+  reserved_future_use = buf[bi];
+  if (reserved_future_use != 0xff)
+    return -1;
+  bi += 1;
+  while (bi < (rem_length - 4)) {
+    int res = ParseServiceDescription(buf + bi, len - bi,
+        service_description_section->add_service_description());
+    if (res < 0) {
+      return -1;
+    }
+    bi += res;
+  }
+  int crc_32 = (((int32_t)(buf[bi+0]) << 24) |
+        ((int32_t)(buf[bi+1]) << 16) |
+        ((int32_t)(buf[bi+2]) << 8) |
+        ((int32_t)(buf[bi+3])));
+  service_description_section->set_crc_32(crc_32);
+  bi += 4;
+  return bi;
+}
+
+
+int Mpeg2TsParser::DumpServiceDescriptionSection(
+    const ServiceDescriptionSection &service_description_section,
+    uint8_t *buf, int len) {
+  int bi = 0;
+  int res;
+
+  if (len < 1)
+    return -1;
+  BitSet(buf+bi, 0, 8, service_description_section.table_id());
+  bi += 1;
+
+  // section_syntax_indicator
+  BitSet(buf+bi, 0, 1, 1);
+  // reserved_future_use
+  BitSet(buf+bi, 1, 1, 1);
+  // reserved
+  BitSet(buf+bi, 2, 2, 3);
+  // section_length
+  BitSet(buf+bi, 4, 12, service_description_section.section_length());
+  bi += 2;
+  // transport_stream_id
+  BitSet(buf+bi, 0, 16, service_description_section.transport_stream_id());
+  bi += 2;
+  // reserved
+  BitSet(buf+bi, 0, 2, 3);
+  // version_number
+  BitSet(buf+bi, 2, 5, service_description_section.version_number());
+  // current_next_indicator
+  BitSet(buf+bi, 7, 1, service_description_section.current_next_indicator());
+  bi += 1;
+  // section_number
+  BitSet(buf+bi, 0, 8, service_description_section.section_number());
+  bi += 1;
+  // last_section_number
+  BitSet(buf+bi, 0, 8, service_description_section.last_section_number());
+  bi += 1;
+  // original_network_id
+  BitSet(buf+bi, 0, 16, service_description_section.original_network_id());
+  bi += 2;
+  // reserved_future_use
+  BitSet(buf+bi, 0, 8, 0xff);
+  bi += 1;
+  // service description
+  for (int i = 0; i < service_description_section.service_description_size();
+      ++i) {
+    res = DumpServiceDescription(
+        service_description_section.service_description(i), buf + bi, len - bi);
+    if (res < 0)
+      return -1;
+    bi += res;
+  }
+  // crc_32
+  BitSet(buf+bi, 0, 32, service_description_section.crc_32());
+  bi += 4;
+
+  return bi;
+}
+
+
+int Mpeg2TsParser::ParseServiceDescription(const uint8_t *buf, int len,
+    ServiceDescription *service_description) {
+  int bi = 0;
+  if ((len - bi) < 4)
+    return -1;
+  int service_id = (buf[bi] << 8) | buf[bi + 1];
+  service_description->set_service_id(service_id);
+  bi += 2;
+  // check reserved_future_use
+  int reserved_future_use = (buf[bi] & 0xfc) >> 2;
+  if (reserved_future_use != 0x3f)
+    return -1;
+  int eit_schedule_flag = (buf[bi] & 0x02) >> 1;
+  service_description->set_eit_schedule_flag(eit_schedule_flag);
+  int eit_present_following_flag = (buf[bi] & 0x01);
+  service_description->set_eit_present_following_flag(
+      eit_present_following_flag);
+  bi += 1;
+  int running_status = (buf[bi] & 0xe0) >> 5;
+  service_description->set_running_status(running_status);
+  int free_ca_mode = (buf[bi] & 0x10) >> 4;
+  service_description->set_free_ca_mode(free_ca_mode);
+  int descriptors_loop_length = ((buf[bi] & 0x0f) << 8) | buf[bi + 1];
+  service_description->set_descriptors_loop_length(
+      descriptors_loop_length);
+  bi += 2;
+  // parse descriptors
+  int fixed_bi = bi;
+  while (bi < (fixed_bi + descriptors_loop_length)) {
+    int res = ParseDescriptor(buf + bi,
+        descriptors_loop_length - (bi - fixed_bi),
+        service_description->add_mpegts_descriptor());
+    if (res < 0) {
+      return -1;
+    }
+    bi += res;
+  }
+  return bi;
+}
+
+
+int Mpeg2TsParser::DumpServiceDescription(
+    const ServiceDescription &service_description,
+    uint8_t *buf, int len) {
+  int bi = 0;
+  int res;
+
+  // service_id
+  BitSet(buf+bi, 0, 16, service_description.service_id());
+  bi += 2;
+  // reserved_future_use
+  BitSet(buf+bi, 0, 6, 0x3f);
+  BitSet(buf+bi, 6, 1, service_description.eit_schedule_flag());
+  BitSet(buf+bi, 7, 1, service_description.eit_present_following_flag());
+  bi += 1;
+  // running_status
+  BitSet(buf+bi, 0, 3, service_description.running_status());
+  BitSet(buf+bi, 3, 1, service_description.free_ca_mode());
+  BitSet(buf+bi, 4, 12, service_description.descriptors_loop_length());
+  bi += 2;
+
+  // descriptors
+  for (int i = 0; i < service_description.mpegts_descriptor_size(); ++i) {
+    res = DumpDescriptor(service_description.mpegts_descriptor(i),
+        buf + bi, len - bi);
+    if (res < 0) {
+      return -1;
+    }
+    bi += res;
+  }
+
   return bi;
 }
 

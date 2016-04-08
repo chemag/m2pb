@@ -58,27 +58,151 @@ parsed {
 }
 )EOF";
 
+static const char kMpeg2TsPacketSDT[] = R"EOF(
+packet: 0
+byte: 0
+parsed {
+  header {
+    transport_error_indicator: false
+    payload_unit_start_indicator: true
+    transport_priority: false
+    pid: 17
+    transport_scrambling_control: 0
+    adaptation_field_exists: false
+    payload_exists: true
+    continuity_counter: 1
+  }
+  psi_packet {
+    pointer_field: ""
+    service_description_section {
+      table_id: 66
+      section_length: 178
+      transport_stream_id: 1
+      version_number: 7
+      current_next_indicator: true
+      section_number: 0
+      last_section_number: 0
+      original_network_id: 1
+      service_description {
+        service_id: 300
+        eit_schedule_flag: false
+        eit_present_following_flag: false
+        running_status: 4
+        free_ca_mode: false
+        descriptors_loop_length: 20
+        mpegts_descriptor {
+          tag: 72
+          length: 18
+          data: "\001\006Turner\tNBA Slate"
+        }
+      }
+      service_description {
+        service_id: 251
+        eit_schedule_flag: false
+        eit_present_following_flag: false
+        running_status: 4
+        free_ca_mode: false
+        descriptors_loop_length: 17
+        mpegts_descriptor {
+          tag: 72
+          length: 15
+          data: "\001\006Turner\006HLN HD"
+        }
+      }
+      service_description {
+        service_id: 249
+        eit_schedule_flag: false
+        eit_present_following_flag: false
+        running_status: 4
+        free_ca_mode: false
+        descriptors_loop_length: 19
+        mpegts_descriptor {
+          tag: 72
+          length: 17
+          data: "\001\006Turner\010TRUTV HD"
+        }
+      }
+      service_description {
+        service_id: 247
+        eit_schedule_flag: false
+        eit_present_following_flag: false
+        running_status: 4
+        free_ca_mode: false
+        descriptors_loop_length: 17
+        mpegts_descriptor {
+          tag: 72
+          length: 15
+          data: "\001\006Turner\006TCM HD"
+        }
+      }
+      service_description {
+        service_id: 246
+        eit_schedule_flag: false
+        eit_present_following_flag: false
+        running_status: 4
+        free_ca_mode: false
+        descriptors_loop_length: 22
+        mpegts_descriptor {
+          tag: 72
+          length: 20
+          data: "\001\006Turner\013TEN S.E. HD"
+        }
+      }
+      service_description {
+        service_id: 245
+        eit_schedule_flag: false
+        eit_present_following_flag: false
+        running_status: 4
+        free_ca_mode: false
+        descriptors_loop_length: 19
+        mpegts_descriptor {
+          tag: 72
+          length: 17
+          data: "\001\006Turner\010TBS E HD"
+        }
+      }
+      service_description {
+        service_id: 244
+        eit_schedule_flag: false
+        eit_present_following_flag: false
+        running_status: 4
+        free_ca_mode: false
+        descriptors_loop_length: 17
+        mpegts_descriptor {
+          tag: 72
+          length: 15
+          data: "\001\006Turner\006CNN HD"
+        }
+      }
+      crc_32: 11111111
+    }
+  }
+  data_bytes: "\000\000"
+}
+)EOF";
+
 TEST_F(Mpeg2TsParserTest, ProtobufPackets) {
   struct protobuf_start_test {
     int line;
     const char *pb;
   } test_arr[] = {
     {__LINE__, kMpeg2TsPacketWithPacketPayload},
+    {__LINE__, kMpeg2TsPacketSDT},
   };
 
   uint8_t buf[MPEG_TS_PACKET_SIZE];
 
   for (const auto &test_item : test_arr) {
-    // parse pb packet
+    // parse pb packet (text -> pb)
     Mpeg2Ts mpeg2ts;
     EXPECT_TRUE(google::protobuf::TextFormat::ParseFromString(
         test_item.pb, &mpeg2ts))
         << "line " << test_item.line;
-    // dump it to binary
+    // dump it to binary (pb -> bin)
     EXPECT_EQ(MPEG_TS_PACKET_SIZE,
         mpeg2ts_parser_.DumpPacket(mpeg2ts, buf, MPEG_TS_PACKET_SIZE))
         << "line " << test_item.line;
-    // parse it back to pb
+    // parse it back to pb (bin -> pb)
     Mpeg2Ts mpeg2ts_from_binary;
     mpeg2ts_parser_.ParsePacket(0, 0, buf, MPEG_TS_PACKET_SIZE,
         &mpeg2ts_from_binary);
