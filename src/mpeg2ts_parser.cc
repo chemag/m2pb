@@ -1457,6 +1457,10 @@ int Mpeg2TsParser::ParseProgramAssociationSection(const uint8_t *buf, int len,
   program_association_section->set_section_length(section_length);
   bi += 2;
   section_length += bi;
+  // TODO(chema): need to support section_length > len. This typically
+  // happens in packets with a section longer than 188 bytes. In that
+  // case, there is no CRC_32 in this packet. A sub-section may be
+  // incomplete, in which case the following packet will have the rest of it
   if (len < section_length)
     return -1;
   int transport_stream_id = (buf[bi] << 8) | buf[bi + 1];
@@ -1608,6 +1612,7 @@ int Mpeg2TsParser::ParseProgramMapSection(const uint8_t *buf, int len,
   program_map_section->set_section_length(section_length);
   bi += 2;
   section_length += bi;
+  // TODO(chema): need to support section_length > len
   if (len < section_length)
     return -1;
   int program_number = (buf[bi] << 8) | buf[bi + 1];
