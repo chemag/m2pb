@@ -1348,39 +1348,37 @@ int Mpeg2TsParser::ParsePsiPacket(const uint8_t *buf, int len,
     return -1;
   psi_packet->set_pointer_field(buf + bi, pointer_field_length);
   bi += pointer_field_length;
-  // parse the PSI sections
-  while (bi < len) {
-    // identify the following section
-    int table_id = buf[bi];
-    res = -1;
-    if (table_id == MPEG_TS_TABLE_ID_PROGRAM_ASSOCIATION_SECTION) {
-      res = ParseProgramAssociationSection(buf + bi, len - bi,
-          psi_packet->add_program_association_section());
-      if (res < 0) {
-        psi_packet->clear_program_association_section();
-      }
-    } else if (table_id == MPEG_TS_TABLE_ID_TS_PROGRAM_MAP_SECTION) {
-      res = ParseProgramMapSection(buf + bi, len - bi,
-          psi_packet->add_program_map_section());
-      if (res < 0) {
-        psi_packet->clear_program_map_section();
-      }
-    } else if (table_id == MPEG_TS_TABLE_ID_FORBIDDEN) {
-      // remaining bytes are data bytes
-      break;
-    }
+  // parse the PSI section
+  // identify the following section
+  int table_id = buf[bi];
+  res = -1;
+  if (table_id == MPEG_TS_TABLE_ID_PROGRAM_ASSOCIATION_SECTION) {
+    res = ParseProgramAssociationSection(buf + bi, len - bi,
+        psi_packet->add_program_association_section());
     if (res < 0) {
-      // unsupported PSI Section
-      res = ParseOtherPsiSection(buf + bi, len - bi,
-          psi_packet->add_other_psi_section());
-    }
-    if (res < 0) {
+      psi_packet->clear_program_association_section();
       return -1;
     }
-    bi += res;
+  } else if (table_id == MPEG_TS_TABLE_ID_TS_PROGRAM_MAP_SECTION) {
+    res = ParseProgramMapSection(buf + bi, len - bi,
+        psi_packet->add_program_map_section());
+    if (res < 0) {
+      psi_packet->clear_program_map_section();
+      return -1;
+    }
+  } else if (table_id == MPEG_TS_TABLE_ID_FORBIDDEN) {
+    // remaining bytes are data bytes
+    res = 0;
+  } else {
+    // unsupported PSI Section
+    res = ParseOtherPsiSection(buf + bi, len - bi,
+        psi_packet->add_other_psi_section());
+    if (res < 0) {
+      psi_packet->clear_other_psi_section();
+      return -1;
+    }
   }
-
-  return bi;
+  return bi + res;
 }
 
 
