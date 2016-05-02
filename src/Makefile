@@ -5,13 +5,16 @@ all: .protos_done m2pb
 CXX = g++
 CFLAGS = -g -O0 -Wall -pedantic -std=c++0x
 LDFLAGS=mpeg2ts_parser.o mpeg2ts_reader.o \
-		mpeg2ts.pb.o protobuf_utils.o ac3_utils.o h264_utils.o
+		mpeg2ts.pb.o protobuf_utils.o ac3_utils.o h264_utils.o bitstream.o
 LIBS+=-lprotobuf -lpthread
 
 m2pb: m2pb.cc mpeg2ts_parser.o mpeg2ts_reader.o mpeg2ts.pb.o \
-    protobuf_utils.o ac3_utils.o h264_utils.o
+    protobuf_utils.o ac3_utils.o h264_utils.o bitstream.o
 	$(CXX) $(CFLAGS) -c m2pb.cc -o m2pb.o
 	$(CXX) $(CFLAGS) -o m2pb m2pb.o $(LDFLAGS) $(LIBS)
+
+bitstream.o: bitstream.cc bitstream.h
+	$(CXX) $(CFLAGS) -c bitstream.cc -o bitstream.o
 
 mpeg2ts_parser.o: mpeg2ts_parser.cc mpeg2ts_parser.h mpeg2ts.pb.h
 	$(CXX) $(CFLAGS) -c mpeg2ts_parser.cc -o mpeg2ts_parser.o
