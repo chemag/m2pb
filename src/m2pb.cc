@@ -60,7 +60,7 @@ typedef struct status_t
   int64_t pts_delta;
   int64_t pts_delta_audio;
   int64_t pts_delta_video;
-  int video_pid;
+  std::list<int> video_pid_l;
   std::list<int> audio_pid_l;
   std::list<std::string> dump_fields;
   char *in;
@@ -321,7 +321,8 @@ void DumpLine(const Mpeg2Ts &mpeg2ts, status_t *status, FILE* fout) {
       char stype = '-';
       if (mpeg2ts.parsed().header().has_pid()) {
         int pid = mpeg2ts.parsed().header().pid();
-        if (pid == status->video_pid) {
+        if (std::find(status->video_pid_l.begin(),
+            status->video_pid_l.end(), pid) != status->video_pid_l.end()) {
           // video
           int frame_type = -1;
           if (mpeg2ts.parsed().has_data_bytes()) {
@@ -422,7 +423,7 @@ void mpegts_process_packet(const Mpeg2Ts &mpeg2ts, status_t *status) {
       if (std::find(MPEGTS_VIDEO_STREAM_TYPE.begin(),
           MPEGTS_VIDEO_STREAM_TYPE.end(), stream_description.stream_type()) !=
             MPEGTS_VIDEO_STREAM_TYPE.end()) {
-        status->video_pid = stream_description.elementary_pid();
+        status->video_pid_l.push_back(stream_description.elementary_pid());
       } else if (std::find(MPEGTS_AUDIO_STREAM_TYPE.begin(),
           MPEGTS_AUDIO_STREAM_TYPE.end(), stream_description.stream_type()) !=
             MPEGTS_AUDIO_STREAM_TYPE.end()) {
