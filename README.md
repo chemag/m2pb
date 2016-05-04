@@ -186,14 +186,14 @@ that is not an mpeg-ts packet as a non-parsed packet).
 
 
 
-## Manual
+## Install Instructions
 
 The main dependency is protobuf.
 
 On Ubuntu, use:
 
 ```
-$ sudo apt-get install protobuf-compiler
+$ sudo apt-get install protobuf-compiler libprotobuf-dev
 ```
 
 In order to run the tests, you also need
