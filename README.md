@@ -70,7 +70,7 @@ Fields can be obtained from 3 places:
 
 The second use case is allowing manual or script-based edition of
 mpeg-ts packet fields. m2pb provides a mechanism for binary-to-text
-and text-to-binary conversion of mpeg2-ts packets. In order to edit
+and text-to-binary lossless conversion of mpeg2-ts packets. In order to edit
 the packets of an mpeg-ts stream, the stream is converted to text,
 edit there, and then converted back to binary before writing it back.
 The text format is the short text protobuf one.
