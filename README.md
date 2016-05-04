@@ -190,6 +190,24 @@ that is not an mpeg-ts packet as a non-parsed packet).
 
 The main dependency is protobuf.
 
+On Ubuntu, use:
+
+```
+$ sudo apt-get install protobuf-compiler
+```
+
 In order to run the tests, you also need
 [googletest](https://github.com/google/googletest).
+
+On Ubuntu, use:
+
+```
+$ sudo apt-get install libgtest-dev
+$ cd /usr/src/gtest
+$ sudo cmake .
+$ sudo make
+$ sudo mv libg* /usr/lib/
+```
+
+From [here](http://askubuntu.com/questions/145887/why-no-library-files-installed-for-google-test).
 
