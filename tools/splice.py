@@ -282,10 +282,10 @@ def get_state(pts, pts1, pts2, splice_buffer_pts):
     print 'invalid input file spec: pts1 > pts2 (%i > %i)' % (pts1, pts2)
     sys.exit(-1)
   if (pts1 != pts_utils.kPtsInvalid and
-      pts_utils.pts_cmp(pts, pts_utils.pts_sub(pts1, splice_buffer_pts)) < 0):
+      pts_utils.pts_cmp(pts, pts_utils.pts_diff(pts1, splice_buffer_pts)) < 0):
     return STATE_PRE_IN
   if (pts1 != pts_utils.kPtsInvalid and
-      pts_utils.pts_cmp(pts, pts_utils.pts_sub(pts1, splice_buffer_pts)) >= 0
+      pts_utils.pts_cmp(pts, pts_utils.pts_diff(pts1, splice_buffer_pts)) >= 0
       and pts_utils.pts_cmp(pts, pts1) < 0):
     return STATE_BUFFER_IN
   if (pts1 != pts_utils.kPtsInvalid and
@@ -385,10 +385,10 @@ def splice_streams(input_file_specs, output_file, simple_splice, debug,
               pts0 != pts_utils.kPtsInvalid):
             if pts1 != pts_utils.kPtsInvalid:
               # calculate the delta using the pts that the user requested
-              pts_delta_cur = pts_utils.pts_diff(pts0, pts1)
+              pts_delta_cur = pts_utils.pts_sub(pts0, pts1)
             else:
               # calculate the delta using the first pts seen
-              pts_delta_cur = pts_utils.pts_diff(pts0, pts)
+              pts_delta_cur = pts_utils.pts_sub(pts0, pts)
             pts_delta_cur = pts_utils.pts_add(pts_delta_cur, PTS_PER_FRAME)
             if pts_delta == pts_utils.kPtsInvalid:
               pts_delta = pts_delta_cur
