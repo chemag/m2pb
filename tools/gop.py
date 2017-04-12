@@ -63,7 +63,7 @@ def get_opts(argv):
       dest='audiostr_pid_l', default=[], type=int,
       metavar='AUDIO PID',
       help='specify audio pid',)
-  parser.add_argument('--delta', nargs = '*', action='append',
+  parser.add_argument('--delta', nargs='*', action='append',
       dest='delta',
       help='Add pts delta mapping',)
   parser.add_argument('--pusi-skip', action='store_const',
@@ -93,7 +93,7 @@ def get_opts(argv):
 
 
 videostr_pid = 481
-audiostr_pid_d = { 482: 1, 483: 2 }
+audiostr_pid_d = {482: 1, 483: 2}
 pmtstr = ' program_map_section {'
 
 video_stream_type_l = [
@@ -319,7 +319,7 @@ def dump_frame_info(input_file, delta_l, debug, pusi_skip=False):
   pts_delta = 0
   dumped_lines_d = {}
   raw_packets = 0
-  for line in iter(proc.stdout.readline,''):
+  for line in iter(proc.stdout.readline, ''):
     l = line.rstrip()
     packet, pts, pusi, pid, t = l.split()
     packet = long(packet)
@@ -389,7 +389,7 @@ def dump_frame_info_inefficient(input_file, delta_l, debug, pusi_skip=False):
   start_pts = pts_utils.kPtsInvalid
   pts_delta = 0
   dumped_lines_d = {}
-  for line in iter(proc.stdout.readline,''):
+  for line in iter(proc.stdout.readline, ''):
     l = line.rstrip()
     # use simpler comparison for faster parsing
     #header_match = re.search(headerre, l, re.X)
@@ -517,7 +517,7 @@ def do_plot(df, filename, xmin, xmax, ymin, ymax):
   plt.ylim([ymin, ymax])
   # print the whole drawing
   plt.plot(video_df.packet, video_df.pts, '-b')
-  plt.gca().set_xlabel('packet number', ha='left', va = 'top')
+  plt.gca().set_xlabel('packet number', ha='left', va='top')
   plt.gca().xaxis.set_label_coords(0.9, -0.05)
   #plt.gca().set_ylabel('pts', ha='center', va = 'top')
   plt.ylabel('pts')
@@ -527,7 +527,7 @@ def do_plot(df, filename, xmin, xmax, ymin, ymax):
       markersize=NON_PUSI_MARKERSIZE)
   for ft in VIDEO_TYPE_L:
     tmp_df = video_df[(video_df.type == ft) & (video_df.pusi == True)]
-    plt.scatter(tmp_df.packet, tmp_df.pts, marker = r"$\mathtt{%s}$" % ft, s=40)
+    plt.scatter(tmp_df.packet, tmp_df.pts, marker=r"$\mathtt{%s}$" % ft, s=40)
   # http://stackoverflow.com/questions/22408237/named-colors-in-matplotlib
   color_d = {
       '1': 'r',
@@ -547,7 +547,7 @@ def do_plot(df, filename, xmin, xmax, ymin, ymax):
         markersize=NON_PUSI_MARKERSIZE)
   for ft in AUDIO_TYPE_L:
     tmp_df = audio_df[(audio_df.type == ft) & (audio_df.pusi == True)]
-    plt.scatter(tmp_df.packet, tmp_df.pts, marker = r"$\mathtt{%s}$" % ft, s=40)
+    plt.scatter(tmp_df.packet, tmp_df.pts, marker=r"$\mathtt{%s}$" % ft, s=40)
   # add bar
   #plt.plot((pts_bar, pts_bar), (ylim[0], ylim[1]), 'k-')
   # make axis values absolute (instead of shift-offset)
@@ -588,11 +588,12 @@ def do_plot(df, filename, xmin, xmax, ymin, ymax):
     for pts in (1629000, 1662000):
       plt.axhline(y=pts, color='k', ls='dotted')
       plt.text(xmin, pts, 'pts: %i' % pts, fontsize='x-small')
-    for (i, (packet, pid, pts, type)) in enumerate(gop_info):
+    for (i, (packet, pid, pts, t)) in enumerate(gop_info):
       plt.axvline(x=packet, color='k', ls='dotted')
-      plt.text(packet-50, ymax+3500, '%i %s' % (first_packet + i, type),
+      plt.text(packet-50, ymax+3500, '%i %s' % (first_packet + i, t),
           rotation=45, fontsize='x-small')
-  elif 'splice_in.short' in filename or 'splice_in.long' in filename or 'ad.' in filename:
+  elif ('splice_in.short' in filename or 'splice_in.long' in filename or
+        'ad.' in filename):
     plt.axhline(y=627447, color='k', ls='dotted')
     plt.axhline(y=630450, color='k', ls='dotted')
   elif 'demn_castle' in filename:
@@ -666,7 +667,7 @@ def dump_frame_summary(input_file, delta_l, debug):
   other_pkts_ = 0
   video_gop_cnt = -1
   video_frame_index = 0
-  for line in iter(proc.stdout.readline,''):
+  for line in iter(proc.stdout.readline, ''):
     l = line.rstrip()
     packet, byte, pts, pid, t = l.split()
     pts = long(pts) if pts != '-' else pts_utils.kPtsInvalid
@@ -716,7 +717,7 @@ def dump_frame_sample(input_file, output_filename, debug):
   else:
     fout = sys.stdout
   ferr = sys.stderr
-  for line in iter(proc.stdout.readline,''):
+  for line in iter(proc.stdout.readline, ''):
     l = line.rstrip()
     # use simpler comparison for faster parsing
     #header_match = re.search(headerre, l, re.X)
