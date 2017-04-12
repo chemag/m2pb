@@ -6,6 +6,7 @@ import argparse
 import datetime
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import modulo
 import numpy
 import os.path
 import pandas as pd
@@ -23,6 +24,7 @@ DEFAULT_PACKET_LENGTH = 10000
 # marker size for non-pusi packets
 NON_PUSI_MARKERSIZE = 3
 
+mod = modulo.Modulo(pts_utils.kPtsMaxValue, pts_utils.kPtsInvalid)
 
 def get_opts(argv):
   # init parser
@@ -350,7 +352,7 @@ def dump_frame_info(input_file, delta_l, debug, pusi_skip=False):
         pts_delta = delta_l[0][1]
         print '#setting pts_delta: %i' % pts_delta
         delta_l = delta_l[1:]
-      pts = pts_utils.pts_add(pts_orig, pts_delta)
+      pts = mod.add(pts_orig, pts_delta)
       if start_pts == pts_utils.kPtsInvalid:
         start_pts = pts
       if debug > 1:
@@ -428,7 +430,7 @@ def dump_frame_info_inefficient(input_file, delta_l, debug, pusi_skip=False):
         pts_delta = delta_l[0][1]
         print '#setting pts_delta: %i' % pts_delta
         delta_l = delta_l[1:]
-      pts = pts_utils.pts_add(pts_orig, pts_delta)
+      pts = mod.add(pts_orig, pts_delta)
       #h264_type = video_match.group('h264_type')
       h264_type = 'V'
       if start_pts == pts_utils.kPtsInvalid:
@@ -458,7 +460,7 @@ def dump_frame_info_inefficient(input_file, delta_l, debug, pusi_skip=False):
         pts_orig = last_pts_d[pid]
       # check the delta
       # ZZZ
-      pts = pts_utils.pts_add(pts_orig, pts_delta)
+      pts = mod.add(pts_orig, pts_delta)
       if debug > 0:
         print '%i %i %i %i %i' % (packet, pts_orig, pts, pusi,
             audiostr_pid_d[pid])

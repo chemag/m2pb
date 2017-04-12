@@ -6,6 +6,7 @@ import argparse
 import datetime
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import modulo
 import numpy
 import os.path
 import pandas as pd
@@ -20,6 +21,7 @@ from google.protobuf import text_format
 sys.path.append('../src')
 import mpeg2ts_pb2
 
+mod = modulo.Modulo(pts_utils.kPtsMaxValue, pts_utils.kPtsInvalid)
 
 M2PB = 'm2pb'
 
@@ -213,15 +215,15 @@ def adjust_pts_delta(l, pts_delta):
   text_format.Merge(l, packet)
   if packet.parsed.pes_packet.HasField('pts'):
     # fix pts field
-    packet.parsed.pes_packet.pts = pts_utils.pts_add(
-        packet.parsed.pes_packet.pts, pts_delta)
+    packet.parsed.pes_packet.pts = mod.add(packet.parsed.pes_packet.pts,
+                                           pts_delta)
   if packet.parsed.pes_packet.HasField('dts'):
     # fix dts field
-    packet.parsed.pes_packet.dts = pts_utils.pts_add(
-        packet.parsed.pes_packet.dts, pts_delta)
+    packet.parsed.pes_packet.dts = mod.add(packet.parsed.pes_packet.dts,
+                                           pts_delta)
   if packet.parsed.adaptation_field.pcr.HasField('base'):
     # fix pcr.base field
-    packet.parsed.adaptation_field.pcr.base = pts_utils.pts_add(
+    packet.parsed.adaptation_field.pcr.base = mod.add(
         packet.parsed.adaptation_field.pcr.base, pts_delta)
   return text_format.MessageToString(packet, as_one_line=True)
 
@@ -277,27 +279,27 @@ def get_state(pts, pts1, pts2, splice_buffer_pts):
   if pts1 == pts_utils.kPtsInvalid and pts2 == pts_utils.kPtsInvalid:
     return STATE_THROUGH
   if (pts1 != pts_utils.kPtsInvalid and pts2 != pts_utils.kPtsInvalid and
-      pts_utils.pts_cmp(pts1, pts2) >= 0):
+      mod.cmp(pts1, pts2) >= 0):
     # invalid case: pts1 >= pts2
     print 'invalid input file spec: pts1 > pts2 (%i > %i)' % (pts1, pts2)
     sys.exit(-1)
   if (pts1 != pts_utils.kPtsInvalid and
-      pts_utils.pts_cmp(pts, pts_utils.pts_diff(pts1, splice_buffer_pts)) < 0):
+      mod.cmp(pts, mod.diff(pts1, splice_buffer_pts)) < 0):
     return STATE_PRE_IN
   if (pts1 != pts_utils.kPtsInvalid and
-      pts_utils.pts_cmp(pts, pts_utils.pts_diff(pts1, splice_buffer_pts)) >= 0
-      and pts_utils.pts_cmp(pts, pts1) < 0):
+      mod.cmp(pts, mod.diff(pts1, splice_buffer_pts)) >= 0
+      and mod.cmp(pts, pts1) < 0):
     return STATE_BUFFER_IN
   if (pts1 != pts_utils.kPtsInvalid and
-      pts_utils.pts_cmp(pts, pts1) >= 0 and
-      pts_utils.pts_cmp(pts, pts_utils.pts_add(pts1, splice_buffer_pts)) <= 0):
+      mod.cmp(pts, pts1) >= 0 and
+      mod.cmp(pts, mod.add(pts1, splice_buffer_pts)) <= 0):
     return STATE_BUFFER_IN2
   if (pts2 != pts_utils.kPtsInvalid and
-      pts_utils.pts_cmp(pts, pts2) >= 0 and
-      pts_utils.pts_cmp(pts, pts_utils.pts_add(pts2, splice_buffer_pts)) <= 0):
+      mod.cmp(pts, pts2) >= 0 and
+      mod.cmp(pts, mod.add(pts2, splice_buffer_pts)) <= 0):
     return STATE_BUFFER_OUT
   if (pts2 != pts_utils.kPtsInvalid and
-      pts_utils.pts_cmp(pts, pts_utils.pts_add(pts2, splice_buffer_pts)) > 0):
+      mod.cmp(pts, mod.add(pts2, splice_buffer_pts)) > 0):
     return STATE_POST_OUT
   # default is through
   return STATE_THROUGH
@@ -378,22 +380,22 @@ def splice_streams(input_file_specs, output_file, simple_splice, debug,
           # re-calculate last video pts value
           if pid == videostr_pid:
             # store the pts as "farthest pts value"
-            farthest_video_pts = pts_utils.pts_max(farthest_video_pts, pts)
+            farthest_video_pts = mod.max(farthest_video_pts, pts)
           # ensure we have a valid local delta
           if (pts_delta_cur == pts_utils.kPtsInvalid and
               pid == videostr_pid and
               pts0 != pts_utils.kPtsInvalid):
             if pts1 != pts_utils.kPtsInvalid:
               # calculate the delta using the pts that the user requested
-              pts_delta_cur = pts_utils.pts_sub(pts0, pts1)
+              pts_delta_cur = mod.sub(pts0, pts1)
             else:
               # calculate the delta using the first pts seen
-              pts_delta_cur = pts_utils.pts_sub(pts0, pts)
-            pts_delta_cur = pts_utils.pts_add(pts_delta_cur, PTS_PER_FRAME)
+              pts_delta_cur = mod.sub(pts0, pts)
+            pts_delta_cur = mod.add(pts_delta_cur, PTS_PER_FRAME)
             if pts_delta == pts_utils.kPtsInvalid:
               pts_delta = pts_delta_cur
             else:
-              pts_delta = pts_utils.pts_add(pts_delta, pts_delta_cur)
+              pts_delta = mod.add(pts_delta, pts_delta_cur)
             if debug > 0:
               print '--------------2- pts_delta: %i' % (pts_delta)
           if state == STATE_BUFFER_IN2 and not simple_splice:
