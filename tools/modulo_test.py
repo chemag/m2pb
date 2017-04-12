@@ -1,4 +1,4 @@
-#!/usr/grte/v4/bin/python2.7
+#!/usr/bin/python
 
 """Unit tests for modulo.py."""
 
