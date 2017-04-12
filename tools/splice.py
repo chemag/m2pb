@@ -3,13 +3,8 @@
 # Copyright Google Inc. Apache 2.0.
 
 import argparse
-import datetime
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 import modulo
-import numpy
 import os.path
-import pandas as pd
 import pts_utils
 import re
 import subprocess
@@ -24,9 +19,6 @@ import mpeg2ts_pb2
 mod = modulo.Modulo(pts_utils.kPtsMaxValue, pts_utils.kPtsInvalid)
 
 M2PB = 'm2pb'
-
-## axes.formatter.useoffset not in 1.3.1
-#mpl.rcParams['axes.formatter.useoffset'] = False
 
 DEFAULT_PACKET_LENGTH = 10000
 
@@ -79,7 +71,7 @@ def get_opts(argv):
 
 
 videostr_pid = 481
-audiostr_pid_d = { 482: 1, 483: 2 }
+audiostr_pid_d = {482: 1, 483: 2}
 pmtstr = ' program_map_section {'
 
 video_stream_type_l = [
@@ -192,7 +184,7 @@ scte35re = 'pid: 0x01ea pusi:'
 #      "dump", input_file]
 #  proc = subprocess.Popen(command, stdout=subprocess.PIPE)
 #  last_i_frame = pts_utils.kPtsInvalid
-#  for line in iter(proc.stdout.readline,''):
+#  for line in iter(proc.stdout.readline, ''):
 #    l = line.rstrip()
 #    parts = l.split(' ')
 #    packet = long(parts[0])
@@ -333,7 +325,7 @@ def splice_streams(input_file_specs, output_file, simple_splice, debug,
     farthest_video_pts = pts_utils.kPtsInvalid
     # clean up packet buffer
     packet_buffer = []
-    for line in iter(proc_in.stdout.readline,''):
+    for line in iter(proc_in.stdout.readline, ''):
       l = line.rstrip()
       # use simpler comparison for faster parsing
       parts = l.split(' ')
@@ -488,7 +480,7 @@ def main(argv):
       sys.exit(-1)
 
   do_print = (vals.debug >= 0)
-  df = splice_streams(vals.input_file_spec, vals.output_filename,
+  splice_streams(vals.input_file_spec, vals.output_filename,
       vals.simple, vals.debug, frames_to_pts(vals.splice_frames))
 
 
