@@ -6,7 +6,7 @@ Copyright 2015 Google Inc.
 This is not an official Google product.
 
 
-# Introduction
+# 1. Introduction
 
 m2pb is a tool that parses mpeg2ts (mpeg-ts aka MPEG-2 Part 1, Systems
 aka ISO/IEC 13818-1) media streams. It has 2 main uses:
@@ -15,7 +15,7 @@ aka ISO/IEC 13818-1) media streams. It has 2 main uses:
 * stream packet-based edition
 
 
-# Using m2pb for Field Cherry-Picking
+# 2. Using m2pb for Field Cherry-Picking
 
 The first use case for m2pb is printing the various fields of every
 packet in an mpeg-ts field. This is directly inspired by
@@ -66,7 +66,7 @@ Fields can be obtained from 3 places:
   beginning of the payload.
 
 
-# Using m2pb for Stream Packet-Based Edition
+# 3. Using m2pb for Stream Packet-Based Edition
 
 The second use case is allowing manual or script-based edition of
 mpeg-ts packet fields. m2pb provides a mechanism for binary-to-text
@@ -118,14 +118,14 @@ $ echo $?
 0
 ```
 
-## Using m2pb for Manual Stream Packet-Based Edition
+## 3.1. Using m2pb for Manual Stream Packet-Based Edition
 
 For manual packet-based edition, we include a ts.vim script that
 associates files with the .ts extension to be pre- and post-parsed
 by m2pb. This allows direct edition of mpeg-ts traces using vim.
 
 
-## Using m2pb for Automatic Stream Packet-Based Edition
+## 3.2. Using m2pb for Automatic Stream Packet-Based Edition
 
 m2pb allows performing per-packet edition of .ts frames by piping
 text-based edition in the middle of a binary-to-text and a
@@ -148,7 +148,7 @@ $ ffmpeg -i /tmp/out.ts
         stereo, fltp, 192 kb/s
 ```
 
-# Implementation
+# 4. Implementation
 
 At its core, m2pb is an mpeg-ts binary to text converter. It converts
 mpeg-ts files (binary) to a text representation, and from the text
@@ -179,14 +179,14 @@ the "dumper" (the protobuf to mpeg-ts binary converter).
                 Mpeg2TsParser::Dump*
 
 
-## Other Features
+## 4.1. Other Features
 
 m2pb supports mpeg-ts resync (it will dump any chunk in the input stream
 that is not an mpeg-ts packet as a non-parsed packet).
 
 
 
-## Install Instructions
+## 4.2. Install Instructions
 
 The main dependency is protobuf.
 
