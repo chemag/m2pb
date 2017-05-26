@@ -22,37 +22,37 @@ class Mpeg2TsReader {
  public:
   explicit Mpeg2TsReader(FILE *fin, int debug)
     : fin_(fin),
-		  debug_(debug),
-		  sync_gap_(DEFAULT_SYNC_GAP) {
-		buffer_ = new uint8_t[sync_gap_];
+      debug_(debug),
+      sync_gap_(DEFAULT_SYNC_GAP) {
+    buffer_ = new uint8_t[sync_gap_];
     blen_ = 0;
     pi_ = 0;
     bi_ = 0;
-	}
+  }
   ~Mpeg2TsReader() {
-		delete[] buffer_;
-	}
+    delete[] buffer_;
+  }
 
-	int SetSyncGap(int sync_gap) {
-		delete[] buffer_;
-		sync_gap_ = sync_gap;
-		buffer_ = new uint8_t[sync_gap_];
+  int SetSyncGap(int sync_gap) {
+    delete[] buffer_;
+    sync_gap_ = sync_gap;
+    buffer_ = new uint8_t[sync_gap_];
     blen_ = 0;
-		if (!buffer_)
-			return -1;
-		return 0;
-	}
+    if (!buffer_)
+      return -1;
+    return 0;
+  }
 
-	// Get a chunk (a packet, or a non-parseable chunk)
+  // Get a chunk (a packet, or a non-parseable chunk)
   int GetChunk(uint8_t **buf, int64_t *pi, int64_t *bi);
 
   // Get next packet
   void Next(int used_size);
 
  private:
-	FILE *fin_;
+  FILE *fin_;
   int debug_;
-	int sync_gap_;
+  int sync_gap_;
   int64_t bi_;
   int64_t pi_;
   uint8_t *buffer_;
