@@ -53,10 +53,15 @@ mpeg2ts_parser_test: mpeg2ts_parser_test.cc
 	$(CXX) $(CFLAGS) -c mpeg2ts_parser_test.cc -o mpeg2ts_parser_test.o
 	$(CXX) $(CFLAGS) -o mpeg2ts_parser_test mpeg2ts_parser_test.o $(LDFLAGS) $(LIBS) -lgmock
 
-test: mpeg2ts_parser_test
+modulo_test: modulo_test.cc modulo.h
+	$(CXX) $(CFLAGS) -c modulo_test.cc -o modulo_test.o
+	$(CXX) $(CFLAGS) -o modulo_test modulo_test.o -lgtest -lpthread
+
+test: mpeg2ts_parser_test modulo_test
 	./mpeg2ts_parser_test
+	./modulo_test
 
 clean:
-	rm -f m2pb.o m2pb mpeg2ts_parser_test
+	rm -f m2pb.o m2pb mpeg2ts_parser_test modulo_test
 	rm -rf *.pb.* .protos_done *.o *.pyc mpeg2ts_pb2.py
 
