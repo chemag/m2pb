@@ -10,5 +10,6 @@
 *.so
 */m2pb
 */*_pb2.py
+*.pyc
 src/mpeg2ts_parser_test
 src/modulo_test
