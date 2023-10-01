@@ -4,12 +4,12 @@
 
 #include <gmock/gmock.h>
 #include <google/protobuf/text_format.h>
+#include <google/protobuf/util/message_differencer.h>
 #include <gtest/gtest.h>
 #include <stdio.h>   // for remove
 #include <string.h>  // for memset
 #include <unistd.h>  // for usleep
 
-#include "gmock_utils.h"
 #include "mpeg2ts.pb.h"
 
 class TestableMpeg2TsParser : public Mpeg2TsParser {
@@ -202,7 +202,7 @@ TEST_F(Mpeg2TsParserTest, ProtobufPackets) {
     Mpeg2Ts mpeg2ts_from_binary;
     mpeg2ts_parser_.ParsePacket(0, 0, buf, MPEG_TS_PACKET_SIZE,
                                 &mpeg2ts_from_binary);
-    EXPECT_THAT(mpeg2ts, EqualsProto(mpeg2ts_from_binary))
+    EXPECT_TRUE(google::protobuf::util::MessageDifferencer::Equals(mpeg2ts, mpeg2ts_from_binary))
         << "line " << test_item.line;
   }
 }

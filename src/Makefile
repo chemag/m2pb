@@ -3,7 +3,7 @@
 all: .protos_done m2pb
 
 CXX = g++
-CFLAGS = -g -O0 -Wall -pedantic -std=c++0x
+CFLAGS = -g -O0 -Wall -pedantic -std=c++14
 LDFLAGS=mpeg2ts_parser.o mpeg2ts_reader.o \
 		mpeg2ts.pb.o protobuf_utils.o ac3_utils.o h264_utils.o bitstream.o
 LIBS+=-lprotobuf -lpthread
@@ -51,7 +51,7 @@ mpeg2ts_pb2.py: mpeg2ts.proto
 
 mpeg2ts_parser_test: mpeg2ts_parser_test.cc
 	$(CXX) $(CFLAGS) -c mpeg2ts_parser_test.cc -o mpeg2ts_parser_test.o
-	$(CXX) $(CFLAGS) -o mpeg2ts_parser_test mpeg2ts_parser_test.o $(LDFLAGS) $(LIBS) -lgmock
+	$(CXX) $(CFLAGS) -o mpeg2ts_parser_test mpeg2ts_parser_test.o $(LDFLAGS) -lgtest_main -lgtest $(LIBS) -lgmock
 
 modulo_test: modulo_test.cc modulo.h
 	$(CXX) $(CFLAGS) -c modulo_test.cc -o modulo_test.o
