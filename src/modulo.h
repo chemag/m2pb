@@ -5,7 +5,6 @@
 
 #include <stdint.h>  // for int64_t, uint8_t, uint16_t, etc
 
-
 class Modulo {
  public:
   Modulo(int64_t max_value, int64_t invalid) {
@@ -90,8 +89,7 @@ class Modulo {
   }
 
   // Returns whether the x ranges ([x1, x2] and [y1, y2]) overlap at all.
-  inline bool RangeOverlap(int64_t x1, int64_t x2, int64_t y1,
-                                  int64_t y2) {
+  inline bool RangeOverlap(int64_t x1, int64_t x2, int64_t y1, int64_t y2) {
     if (Cmp(y2, x1) < 0 || Cmp(y1, x2) > 0) {
       return false;
     }

@@ -1,34 +1,30 @@
 // Copyright Google Inc. Apache 2.0.
 
-#include <stdio.h>  // for remove
+#include "modulo.h"
+
+#include <gtest/gtest.h>
+#include <stdio.h>   // for remove
 #include <string.h>  // for memset
 #include <unistd.h>  // for usleep
 
 #include <tuple>
 #include <vector>
 
-#include <gtest/gtest.h>
-#include "modulo.h"
-
-
 class TestableModulo : public Modulo {
  public:
   TestableModulo(int64_t max_value, int64_t invalid)
-   : Modulo(max_value, invalid) {}
+      : Modulo(max_value, invalid) {}
 
   using Modulo::WrapCorrection;
 };
-
 
 class ModuloTest : public ::testing::Test {
  protected:
   void SetUp() override {
     modulo_ = new TestableModulo(kMaxValue, kInvalidValue);
   }
-  void TearDown() override {
-    delete modulo_;
-  }
-  TestableModulo* modulo_;
+  void TearDown() override { delete modulo_; }
+  TestableModulo *modulo_;
 
   const int64_t kMaxValue = (1LL << 33) - 1;
   const int64_t kInvalidValue = -1;
@@ -66,14 +62,13 @@ TEST_F(ModuloTest, TestDiff) {
   ASSERT_EQ(123456, modulo_->Diff(kMaxValue, kMaxValue - 123456));
   ASSERT_EQ(kMaxValue + 1 - 123456,
             modulo_->Diff(kMaxValue - 123456, kMaxValue));
-  ASSERT_EQ(9, modulo_->Diff(modulo_->WrapCorrection(kMaxValue + 9),
-                             kMaxValue));
+  ASSERT_EQ(9,
+            modulo_->Diff(modulo_->WrapCorrection(kMaxValue + 9), kMaxValue));
   ASSERT_EQ(kMaxValue + 1 - 9,
             modulo_->Diff(kMaxValue, modulo_->WrapCorrection(kMaxValue + 9)));
   ASSERT_EQ(16234, modulo_->Diff(15000, modulo_->WrapCorrection(-1234)));
   ASSERT_EQ(kHalfMaxValue, modulo_->Diff(kHalfMaxValue, 0));
-  ASSERT_EQ(kMaxValue + 1 - kHalfMaxValue,
-            modulo_->Diff(0, kHalfMaxValue));
+  ASSERT_EQ(kMaxValue + 1 - kHalfMaxValue, modulo_->Diff(0, kHalfMaxValue));
   ASSERT_EQ(kInvalidValue, modulo_->Diff(kInvalidValue, 100));
   ASSERT_EQ(kInvalidValue, modulo_->Diff(100, kInvalidValue));
   ASSERT_EQ(kInvalidValue, modulo_->Diff(kInvalidValue, kInvalidValue));
@@ -87,8 +82,8 @@ TEST_F(ModuloTest, TestSub) {
   ASSERT_EQ(123456, modulo_->Sub(kMaxValue, kMaxValue - 123456));
   ASSERT_EQ(-123456, modulo_->Sub(kMaxValue - 123456, kMaxValue));
   ASSERT_EQ(9, modulo_->Sub(modulo_->WrapCorrection(kMaxValue + 9), kMaxValue));
-  ASSERT_EQ(-9, modulo_->Sub(kMaxValue,
-                             modulo_->WrapCorrection(kMaxValue + 9)));
+  ASSERT_EQ(-9,
+            modulo_->Sub(kMaxValue, modulo_->WrapCorrection(kMaxValue + 9)));
   ASSERT_EQ(16234, modulo_->Sub(15000, modulo_->WrapCorrection(-1234)));
   ASSERT_EQ(kHalfMaxValue, modulo_->Sub(kHalfMaxValue, 0));
   ASSERT_EQ(-kHalfMaxValue, modulo_->Sub(0, kHalfMaxValue));
@@ -119,7 +114,7 @@ TEST_F(ModuloTest, TestCompareEq) {
 }
 
 TEST_F(ModuloTest, TestCompareLarger) {
- // first value larger than second by 1
+  // first value larger than second by 1
   ASSERT_EQ(1, modulo_->Cmp(1, 0));
   ASSERT_EQ(1, modulo_->Cmp(10, 9));
   ASSERT_EQ(1, modulo_->Cmp(3423410, 3423409));
@@ -256,13 +251,12 @@ TEST_F(ModuloTest, TestRangeOverlap) {
     bool expected_overlap;
     std::tie(line, x1, x2, expected_overlap) = item;
     ASSERT_EQ(expected_overlap, modulo_->RangeOverlap(x1, x2, y1, y2))
-      << "Line: " << line;
+        << "Line: " << line;
     // overlap is a commutative operation
     ASSERT_EQ(expected_overlap, modulo_->RangeOverlap(y1, y2, x1, x2))
-      << "Line: " << line;
+        << "Line: " << line;
   }
 }
-
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

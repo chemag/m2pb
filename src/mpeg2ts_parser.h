@@ -31,30 +31,31 @@ class Mpeg2TsParser {
   // Returns the number of packets parsed, or -1 if there was an
   // error.
   int ParsePacket(int64_t pi, int64_t bi, const uint8_t *buf, int len,
-      Mpeg2Ts *mpeg2ts);
+                  Mpeg2Ts *mpeg2ts);
 
   // Process a protobuf into a binary mpeg2ts packet.
   int DumpPacket(const Mpeg2Ts &mpeg2ts, uint8_t *buf, int len);
 
  protected:
   int ParseValidPacket(const uint8_t *buf, int len,
-      Mpeg2TsPacket *mpeg2ts_packet);
-  int DumpValidPacket(const Mpeg2TsPacket &mpeg2ts_packet,
-      uint8_t *buf, int len);
+                       Mpeg2TsPacket *mpeg2ts_packet);
+  int DumpValidPacket(const Mpeg2TsPacket &mpeg2ts_packet, uint8_t *buf,
+                      int len);
 
   int ParseHeader(const uint8_t *buf, int len, Mpeg2TsHeader *mpeg2ts_header);
   int DumpHeader(const Mpeg2TsHeader &mpeg2ts_header, uint8_t *buf, int len);
 
   int ParseAdaptationField(const uint8_t *buf, int len,
-      AdaptationField *adaptation_field);
-  int DumpAdaptationField(const AdaptationField &adaptation_field,
-      uint8_t *buf, int len);
+                           AdaptationField *adaptation_field);
+  int DumpAdaptationField(const AdaptationField &adaptation_field, uint8_t *buf,
+                          int len);
 
-  int ParseAdaptationFieldExtension(const uint8_t *buf, int len,
+  int ParseAdaptationFieldExtension(
+      const uint8_t *buf, int len,
       AdaptationFieldExtension *adaptation_field_extension);
   int DumpAdaptationFieldExtension(
-      const AdaptationFieldExtension &adaptation_field_extension,
-      uint8_t *buf, int len);
+      const AdaptationFieldExtension &adaptation_field_extension, uint8_t *buf,
+      int len);
 
   int ParsePesPacket(const uint8_t *buf, int len, PesPacket *pes_packet);
   int DumpPesPacket(const PesPacket &pes_packet, uint8_t *buf, int len);
@@ -74,56 +75,57 @@ class Mpeg2TsParser {
   int DumpPTS(const int64_t pts, int start, uint8_t *buf, int len);
 
   int ParseDsmTrickMode(const uint8_t *buf, int len,
-      DsmTrickMode *dsm_trick_mode);
-  int DumpDsmTrickMode(const DsmTrickMode &dsm_trick_mode,
-      uint8_t *buf, int len);
+                        DsmTrickMode *dsm_trick_mode);
+  int DumpDsmTrickMode(const DsmTrickMode &dsm_trick_mode, uint8_t *buf,
+                       int len);
 
   int ParsePesExtension(const uint8_t *buf, int len,
-      PesExtension *pes_extension);
-  int DumpPesExtension(const PesExtension &pes_extension,
-      uint8_t *buf, int len);
+                        PesExtension *pes_extension);
+  int DumpPesExtension(const PesExtension &pes_extension, uint8_t *buf,
+                       int len);
 
   // PSI parsing
   int ParsePsiPacket(const uint8_t *buf, int len, PsiPacket *pes_packet);
   int DumpPsiPacket(const PsiPacket &psi_packet, uint8_t *buf, int len);
 
-  int ParseProgramAssociationSection(const uint8_t *buf, int len,
+  int ParseProgramAssociationSection(
+      const uint8_t *buf, int len,
       ProgramAssociationSection *program_association_section);
   int DumpProgramAssociationSection(
-    const ProgramAssociationSection &program_association_section,
-    uint8_t *buf, int len);
+      const ProgramAssociationSection &program_association_section,
+      uint8_t *buf, int len);
 
   int ParseProgramInformation(const uint8_t *buf, int len,
-      ProgramInformation *program_information);
+                              ProgramInformation *program_information);
   int DumpProgramInformation(const ProgramInformation &program_information,
-      uint8_t *buf, int len);
+                             uint8_t *buf, int len);
 
   int ParseProgramMapSection(const uint8_t *buf, int len,
-      ProgramMapSection *program_map_section);
+                             ProgramMapSection *program_map_section);
   int DumpProgramMapSection(const ProgramMapSection &program_map_section,
-    uint8_t *buf, int len);
+                            uint8_t *buf, int len);
 
   int ParseStreamDescription(const uint8_t *buf, int len,
-      StreamDescription *stream_description);
+                             StreamDescription *stream_description);
   int DumpStreamDescription(const StreamDescription &stream_description,
-      uint8_t *buf, int len);
+                            uint8_t *buf, int len);
 
-  int ParseServiceDescriptionSection(const uint8_t *buf, int len,
+  int ParseServiceDescriptionSection(
+      const uint8_t *buf, int len,
       ServiceDescriptionSection *service_description_section);
   int DumpServiceDescriptionSection(
       const ServiceDescriptionSection &service_description_section,
       uint8_t *buf, int len);
 
   int ParseServiceDescription(const uint8_t *buf, int len,
-      ServiceDescription *service_description);
-  int DumpServiceDescription(
-      const ServiceDescription &service_description,
-      uint8_t *buf, int len);
+                              ServiceDescription *service_description);
+  int DumpServiceDescription(const ServiceDescription &service_description,
+                             uint8_t *buf, int len);
 
   int ParseOtherPsiSection(const uint8_t *buf, int len,
-      OtherPsiSection *other_psi_section);
+                           OtherPsiSection *other_psi_section);
   int DumpOtherPsiSection(const OtherPsiSection &other_psi_section,
-      uint8_t *buf, int len);
+                          uint8_t *buf, int len);
 
   int ParseDescriptor(const uint8_t *buf, int len, Descriptor *descriptor);
   int DumpDescriptor(const Descriptor &descriptor, uint8_t *buf, int len);

@@ -4,7 +4,7 @@
 #include <gmock/gmock.h>
 
 // Matcher that checks against the given expected proto.
-template<typename T>
+template <typename T>
 ::testing::Matcher<const T &> EqualsProto(const T &expected) {
   return ::testing::Property(&T::ShortDebugString, expected.ShortDebugString());
 }

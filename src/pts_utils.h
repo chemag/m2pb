@@ -7,7 +7,6 @@
 
 #include "time_utils.h"
 
-
 const int64_t kPtsInvalid = -1;
 const int64_t kPosInvalid = -1;
 const int64_t kPtsPerSecond = 90000;
@@ -20,9 +19,7 @@ const int64_t kHalfkPtsMaxValue = (kPtsMaxValue >> 1);
 // valid PTS range, they may be negative or larger than kPtsMaxValue.
 //
 
-static inline int64_t PtsToSeconds(int64_t pts) {
-  return pts / kPtsPerSecond;
-}
+static inline int64_t PtsToSeconds(int64_t pts) { return pts / kPtsPerSecond; }
 
 static inline int64_t SecondsToPts(int64_t secs) {
   return secs * kPtsPerSecond;
@@ -53,25 +50,29 @@ static inline int64_t PtsWrapCorrection(int64_t pts) {
 }
 
 static inline int64_t PtsAdd(int64_t x, int64_t y) {
-  if (x == kPtsInvalid || y == kPtsInvalid)
+  if (x == kPtsInvalid || y == kPtsInvalid) {
     return kPtsInvalid;
+  }
   return PtsWrapCorrection(x + y);
 }
 
 // Returns (x-y) in the range [0..kPtsMaxValue].
 static inline int64_t PtsDiff(int64_t x, int64_t y) {
-  if (x == kPtsInvalid || y == kPtsInvalid)
+  if (x == kPtsInvalid || y == kPtsInvalid) {
     return kPtsInvalid;
+  }
   return PtsWrapCorrection(x - y);
 }
 
 // Returns (x-y) in the range [-kHalfkPtsMaxValue..kHalfkPtsMaxValue].
 static inline int64_t PtsSub(int64_t x, int64_t y) {
-  if (x == kPtsInvalid || y == kPtsInvalid)
+  if (x == kPtsInvalid || y == kPtsInvalid) {
     return kPtsInvalid;
+  }
   int64_t diff = PtsDiff(x, y);
-  if (diff > ((kPtsMaxValue + 1) >> 1))
+  if (diff > ((kPtsMaxValue + 1) >> 1)) {
     return diff - (kPtsMaxValue + 1);
+  }
   return diff;
 }
 

@@ -4,7 +4,7 @@
 #define MPEG2TS_READER_H_
 
 #include <stdint.h>  // for uint8_t, int64_t
-#include <stdio.h>  // for FILE
+#include <stdio.h>   // for FILE
 
 #define MPEG_TS_PACKET_SYNC 0x47  // 'G'
 #define MPEG_TS_PACKET_SIZE 188
@@ -21,25 +21,22 @@
 class Mpeg2TsReader {
  public:
   explicit Mpeg2TsReader(FILE *fin, int debug)
-    : fin_(fin),
-      debug_(debug),
-      sync_gap_(DEFAULT_SYNC_GAP) {
+      : fin_(fin), debug_(debug), sync_gap_(DEFAULT_SYNC_GAP) {
     buffer_ = new uint8_t[sync_gap_];
     blen_ = 0;
     pi_ = 0;
     bi_ = 0;
   }
-  ~Mpeg2TsReader() {
-    delete[] buffer_;
-  }
+  ~Mpeg2TsReader() { delete[] buffer_; }
 
   int SetSyncGap(int sync_gap) {
     delete[] buffer_;
     sync_gap_ = sync_gap;
     buffer_ = new uint8_t[sync_gap_];
     blen_ = 0;
-    if (!buffer_)
+    if (!buffer_) {
       return -1;
+    }
     return 0;
   }
 

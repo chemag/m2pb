@@ -20,7 +20,7 @@ class Bitstream {
   // Reads the next Golomb code word and returns it as a uint32. If an
   // error is hit returns false
   bool ReadGolombUint32(uint32_t *out);
-  
+
   // Reads the next Exp-Golomb code word from the bitstream and returns it
   // as an int32_t. If an error is hit returns false
   bool ReadGolombInt32(int32_t *out);

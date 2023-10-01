@@ -2,13 +2,11 @@
 
 #include <stdint.h>  // for uint8_t, uint32_t, int32_t, etc
 
-
 Bitstream::Bitstream(const uint8_t *buffer, int size_in_bytes) {
   buffer_ = buffer;
   bits_left_ = size_in_bytes * 8;
   bits_offset_ = 0;
 }
-
 
 bool Bitstream::ReadUint32(int bits_to_read, uint32_t *out) {
   if ((bits_to_read > 32) || (bits_left_ < bits_to_read)) {
@@ -40,7 +38,6 @@ bool Bitstream::Skip(int bits_to_skip) {
   bits_offset_ += bits_to_skip;
   return true;
 }
-
 
 bool Bitstream::ReadGolombUint32(uint32_t *out) {
   // From H.264 spec "9.1 Parsing process for Exp-Golomb codes":
@@ -83,18 +80,19 @@ bool Bitstream::ReadGolombUint32(uint32_t *out) {
   }
 
   uint32_t suffix_bits;
-  if (!ReadUint32(leading_zero_bits, &suffix_bits))
+  if (!ReadUint32(leading_zero_bits, &suffix_bits)) {
     return false;
+  }
   *out = (1 << leading_zero_bits) - 1 + suffix_bits;
   return true;
 }
 
-
 bool Bitstream::ReadGolombInt32(int32_t *out) {
   // read unsigned value
   uint32_t u_out = 0;
-  if (!ReadGolombUint32(&u_out))
+  if (!ReadGolombUint32(&u_out)) {
     return false;
+  }
 
   // convert into signed
   *out = (u_out + 1) >> 1;

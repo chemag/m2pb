@@ -1,13 +1,17 @@
 // Copyright Google Inc. Apache 2.0.
 
+#include "m2pb.h"
+
 #include <arpa/inet.h>
 #include <ctype.h>
 #include <getopt.h>
+#include <google/protobuf/descriptor.h>
+#include <google/protobuf/text_format.h>
 #include <inttypes.h>  // for PRId64
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -15,15 +19,11 @@
 #include <list>
 #include <map>
 
-#include <google/protobuf/descriptor.h>
-#include <google/protobuf/text_format.h>
-
 #include "ac3_utils.h"
 #include "h264_utils.h"
-#include "m2pb.h"
+#include "mpeg2ts.pb.h"
 #include "mpeg2ts_parser.h"
 #include "mpeg2ts_reader.h"
-#include "mpeg2ts.pb.h"
 #include "protobuf_utils.h"
 #include "pts_utils.h"
 
@@ -41,17 +41,17 @@ typedef enum {
 #define DEFAULT_DEBUG 0
 
 std::map<std::string, std::string> ACCESSOR_SHORTCUT_MAP = {
-  {"pts", "parsed.pes_packet.pts"},
-  {"pusi", "parsed.header.payload_unit_start_indicator"},
-  {"pid", "parsed.header.pid"},
+    {"pts", "parsed.pes_packet.pts"},
+    {"pusi", "parsed.header.payload_unit_start_indicator"},
+    {"pid", "parsed.header.pid"},
 };
 
 std::list<std::string> ACCESSOR_EXTRA_LIST = {
-  "type", "syncframe",
+    "type",
+    "syncframe",
 };
 
-typedef struct status_t
-{
+typedef struct status_t {
   int sync_gap;
   ProcEnum proc;
   int debug;
@@ -67,20 +67,19 @@ typedef struct status_t
   char *outfile;
   // args-only
   int nrem;
-  char** rem;
+  char **rem;
 } status_t;
-
 
 extern char *optarg;
 extern int optind, opterr, optopt;
 
-
-void usage(char *name)
-{
-  fprintf(stderr, "usage: %s [options] -p <proc> -i [infile.ts] -o [outfile.ts]\n", name);
+void usage(char *name) {
+  fprintf(stderr,
+          "usage: %s [options] -p <proc> -i [infile.ts] -o [outfile.ts]\n",
+          name);
   fprintf(stderr, "where options are:\n");
   fprintf(stderr, "\t-s <sync_gap>:\t\tMaximum sync gap (%i)\n",
-      DEFAULT_MAXIMUM_SYNC_GAP);
+          DEFAULT_MAXIMUM_SYNC_GAP);
   fprintf(stderr, "\t--no-raw:\t\tPunt on raw packets\n");
   fprintf(stderr, "\t--ignore-pts-delta:\t\tIgnore pts delta values\n");
   fprintf(stderr, "\t-d:\t\tIncrease debug verbosity\n");
@@ -92,15 +91,16 @@ void usage(char *name)
   fprintf(stderr, "\tdump: ipsumdump-like print\n");
   fprintf(stderr, "\t\t--<pb_field>: any Mpeg2Ts proto field\n");
   fprintf(stderr, "\t\t");
-  for (auto s : ACCESSOR_SHORTCUT_MAP)
+  for (auto s : ACCESSOR_SHORTCUT_MAP) {
     fprintf(stderr, "--<%s>, ", s.first.c_str());
-  for (auto s : ACCESSOR_EXTRA_LIST)
+  }
+  for (auto s : ACCESSOR_EXTRA_LIST) {
     fprintf(stderr, "--<%s>, ", s.c_str());
+  }
   fprintf(stderr, "\n");
   fprintf(stderr, "\ttest: test a binary file (binary->protobuf->binary)\n");
   fprintf(stderr, "\thelp: this usage\n");
 }
-
 
 ProcEnum GetProc(char *cmd) {
   if (strlen(cmd) == 0)
@@ -117,9 +117,7 @@ ProcEnum GetProc(char *cmd) {
     return PROC_INVALID;
 }
 
-
-status_t *parse_args(int argc, char** argv)
-{
+status_t *parse_args(int argc, char **argv) {
   int arg;
   int optindex = 0;
   char *endptr;
@@ -139,21 +137,22 @@ status_t *parse_args(int argc, char** argv)
   status.dump_fields.clear();
 
   struct option longopts[] = {
-    // options with no argument
-    {"debug", no_argument, NULL, 'd'},
-    {"ignore-pts-delta", no_argument, &status.ignore_pts_delta, 1},
-    {"no-raw", no_argument, &status.allow_raw_packets, 0},
-    // matching options to short options
-    {"sync-gap", required_argument, NULL, 's'},
-    {"proc", required_argument, NULL, 'p'},
-    {"infile", required_argument, NULL, 'i'},
-    {"outfile", required_argument, NULL, 'o'},
-    {"help", no_argument, NULL, 'h'},
-    {"quiet", no_argument, NULL, 'q'},
-    {NULL, 0, NULL, 0},
+      // options with no argument
+      {"debug", no_argument, NULL, 'd'},
+      {"ignore-pts-delta", no_argument, &status.ignore_pts_delta, 1},
+      {"no-raw", no_argument, &status.allow_raw_packets, 0},
+      // matching options to short options
+      {"sync-gap", required_argument, NULL, 's'},
+      {"proc", required_argument, NULL, 'p'},
+      {"infile", required_argument, NULL, 'i'},
+      {"outfile", required_argument, NULL, 'o'},
+      {"help", no_argument, NULL, 'h'},
+      {"quiet", no_argument, NULL, 'q'},
+      {NULL, 0, NULL, 0},
   };
 
-  while ((arg = getopt_long(argc, argv, ":dqs:p:i:o:", longopts, &optindex)) != -1) {
+  while ((arg = getopt_long(argc, argv, ":dqs:p:i:o:", longopts, &optindex)) !=
+         -1) {
     switch (arg) {
       case 0:  // long options
         break;
@@ -167,12 +166,12 @@ status_t *parse_args(int argc, char** argv)
         // check the value is OK
         if (status.sync_gap < SYNC_GAP_MINIMUM) {
           fprintf(stderr, "error: sync_gap (%i) must be at least %i\n",
-              status.sync_gap, SYNC_GAP_MINIMUM);
+                  status.sync_gap, SYNC_GAP_MINIMUM);
           exit(-1);
         }
         if (status.sync_gap > SYNC_GAP_MAXIMUM) {
           fprintf(stderr, "error: sync_gap (%i) must be at most %i\n",
-              status.sync_gap, SYNC_GAP_MAXIMUM);
+                  status.sync_gap, SYNC_GAP_MAXIMUM);
           exit(-1);
         }
         break;
@@ -205,10 +204,9 @@ status_t *parse_args(int argc, char** argv)
         status.debug = -1;
         break;
 
-      case '?':
-        {
+      case '?': {
         // check for ipsumdump-like arguments
-        std::string s(argv[optind-1]+2);
+        std::string s(argv[optind - 1] + 2);
         // check for shortcut accessor values
         auto iter = ACCESSOR_SHORTCUT_MAP.find(s);
         if (iter != ACCESSOR_SHORTCUT_MAP.end()) {
@@ -216,34 +214,32 @@ status_t *parse_args(int argc, char** argv)
           continue;
         }
         // check for extra accessor values
-        if (std::find(ACCESSOR_EXTRA_LIST.begin(),
-            ACCESSOR_EXTRA_LIST.end(), s) !=
-            ACCESSOR_EXTRA_LIST.end()) {
+        if (std::find(ACCESSOR_EXTRA_LIST.begin(), ACCESSOR_EXTRA_LIST.end(),
+                      s) != ACCESSOR_EXTRA_LIST.end()) {
           status.dump_fields.push_back(s);
           continue;
         }
         // check for default values
         Mpeg2Ts mpeg2ts;
-        const google::protobuf::Descriptor* descriptor =
+        const google::protobuf::Descriptor *descriptor =
             mpeg2ts.GetDescriptor();
         if (field_exists(descriptor, s)) {
           status.dump_fields.push_back(s);
           continue;
         }
         // invalid option
-        fprintf(stderr, "error: unrecognized option: %s\n", argv[optind-1]);
+        fprintf(stderr, "error: unrecognized option: %s\n", argv[optind - 1]);
         exit(-1);
         break;
-        }
+      }
 
       case 'h':
       default:
         usage(argv[0]);
         exit(0);
         break;
-
-      }
     }
+  }
 
   /* store remaining arguments */
   status.nrem = argc - optind;
@@ -252,9 +248,7 @@ status_t *parse_args(int argc, char** argv)
   return &status;
 }
 
-
-char *EscapeBinary(const uint8_t *buffer, const int len)
-{
+char *EscapeBinary(const uint8_t *buffer, const int len) {
   static char out[2 * 1024];
   int oi = 0;
   for (int bi = 0; (bi < len) && (bi < ((int)sizeof(out) - 3)); ++bi) {
@@ -267,14 +261,13 @@ char *EscapeBinary(const uint8_t *buffer, const int len)
   return out;
 }
 
-
 int CheckTestResults(const uint8_t *inbuf, const int inlen,
-    const uint8_t *outbuf, const int outlen, const Mpeg2Ts &mpeg2ts,
-    status_t *status) {
+                     const uint8_t *outbuf, const int outlen,
+                     const Mpeg2Ts &mpeg2ts, status_t *status) {
   int res = 0;
   if (inlen != outlen) {
-    fprintf(stderr, "error: different lengths in: %i != out: %i\n",
-        inlen, outlen);
+    fprintf(stderr, "error: different lengths in: %i != out: %i\n", inlen,
+            outlen);
     res = -1;
   } else if (memcmp(inbuf, outbuf, inlen) != 0) {
     fprintf(stderr, "error: different contents:\n");
@@ -286,13 +279,12 @@ int CheckTestResults(const uint8_t *inbuf, const int inlen,
 
   if (res < 0) {
     fprintf(stderr, "   in: \"%s\"\n", EscapeBinary(inbuf, inlen));
-    fprintf(stderr, "  parsed: \"%s\"\n",
-        mpeg2ts.ShortDebugString().c_str());
+    fprintf(stderr, "  parsed: \"%s\"\n", mpeg2ts.ShortDebugString().c_str());
     fprintf(stderr, "  out: \"%s\"\n", EscapeBinary(outbuf, outlen));
     // TODO(chema): remove this (?)
     FILE *pFile;
     pFile = fopen("/tmp/in", "wb");
-    fwrite (inbuf, sizeof(int8_t), inlen, pFile);
+    fwrite(inbuf, sizeof(int8_t), inlen, pFile);
     fclose(pFile);
     pFile = fopen("/tmp/1", "wb");
     std::string eb1 = EscapeBinary(inbuf, inlen);
@@ -309,18 +301,17 @@ int CheckTestResults(const uint8_t *inbuf, const int inlen,
   return res;
 }
 
-
-void DumpLine(const Mpeg2Ts &mpeg2ts, status_t *status, FILE* fout) {
+void DumpLine(const Mpeg2Ts &mpeg2ts, status_t *status, FILE *fout) {
   char buf[1024] = {0};
   int bi = 0;
   for (auto &s : status->dump_fields) {
     // implement the extra accessors
     if (s == "type") {
-      char stype = '';
+      char stype = ' ';
       if (mpeg2ts.parsed().header().has_pid()) {
         int pid = mpeg2ts.parsed().header().pid();
-        if (std::find(status->video_pid_l.begin(),
-            status->video_pid_l.end(), pid) != status->video_pid_l.end()) {
+        if (std::find(status->video_pid_l.begin(), status->video_pid_l.end(),
+                      pid) != status->video_pid_l.end()) {
           // video
           int frame_type = -1;
           if (mpeg2ts.parsed().has_data_bytes()) {
@@ -328,28 +319,32 @@ void DumpLine(const Mpeg2Ts &mpeg2ts, status_t *status, FILE* fout) {
                 mpeg2ts.parsed().data_bytes().c_str());
             int len = mpeg2ts.parsed().data_bytes().length();
             frame_type = h264_frame_type(data, len);
-            stype = (frame_type == 1) ? 'I' :
-                ((frame_type == 2) ? 'P' :
-                ((frame_type == 3) ? 'B' :
-                ((frame_type == 4) ? 'V' : 'X')));
+            stype = (frame_type == 1)
+                        ? 'I'
+                        : ((frame_type == 2)
+                               ? 'P'
+                               : ((frame_type == 3)
+                                      ? 'B'
+                                      : ((frame_type == 4) ? 'V' : 'X')));
           }
         } else if (std::find(status->audio_pid_l.begin(),
-            status->audio_pid_l.end(), pid) != status->audio_pid_l.end()) {
+                             status->audio_pid_l.end(),
+                             pid) != status->audio_pid_l.end()) {
           if (mpeg2ts.parsed().pes_packet().has_pts()) {
             auto iter = std::find(status->audio_pid_l.begin(),
-                status->audio_pid_l.end(), pid);
+                                  status->audio_pid_l.end(), pid);
             int position = distance(status->audio_pid_l.begin(), iter);
             stype = '1' + position;
           }
         }
       }
-      bi += snprintf(buf+bi, sizeof(buf)-bi, "%c,", stype);
+      bi += snprintf(buf + bi, sizeof(buf) - bi, "%c,", stype);
     } else if (s == "syncframe") {
       int syncframe_distance = -1;
       if (mpeg2ts.parsed().header().has_pid()) {
         int pid = mpeg2ts.parsed().header().pid();
-        if (std::find(status->audio_pid_l.begin(),
-            status->audio_pid_l.end(), pid) != status->audio_pid_l.end()) {
+        if (std::find(status->audio_pid_l.begin(), status->audio_pid_l.end(),
+                      pid) != status->audio_pid_l.end()) {
           // audio
           if (mpeg2ts.parsed().has_data_bytes()) {
             const uint8_t *data = reinterpret_cast<const uint8_t *>(
@@ -360,79 +355,80 @@ void DumpLine(const Mpeg2Ts &mpeg2ts, status_t *status, FILE* fout) {
         }
       }
       if (syncframe_distance != -1) {
-        bi += snprintf(buf+bi, sizeof(buf)-bi, "%i,", syncframe_distance);
+        bi += snprintf(buf + bi, sizeof(buf) - bi, "%i,", syncframe_distance);
       } else {
-        bi += snprintf(buf+bi, sizeof(buf)-bi, ",");
+        bi += snprintf(buf + bi, sizeof(buf) - bi, ",");
       }
     } else {
       // known protobuf field
       std::string value;
       if (get_field_value(mpeg2ts, s, &value)) {
-        bi += snprintf(buf+bi, sizeof(buf)-bi, "%s,", value.c_str());
+        bi += snprintf(buf + bi, sizeof(buf) - bi, "%s,", value.c_str());
       } else {
-        bi += snprintf(buf+bi, sizeof(buf)-bi, ",");
+        bi += snprintf(buf + bi, sizeof(buf) - bi, ",");
       }
     }
   }
 
   // remove last comma
-  buf[bi-1] = '\0';
+  buf[bi - 1] = '\0';
   fprintf(fout, "%s\n", buf);
   return;
 }
 
-
 std::list<int> MPEGTS_VIDEO_STREAM_TYPE = {
-  // ISO/IEC 11172 Video
-  0x01,
-  // ITU-T Rec. H.262 | ISO/IEC 13818-2 Video or ISO/IEC 11172-2 constrained
-  // parameter video stream
-  0x02,
-  // H.264/14496-10 video (MPEG-4/AVC)
-  0x1b,
+    // ISO/IEC 11172 Video
+    0x01,
+    // ITU-T Rec. H.262 | ISO/IEC 13818-2 Video or ISO/IEC 11172-2 constrained
+    // parameter video stream
+    0x02,
+    // H.264/14496-10 video (MPEG-4/AVC)
+    0x1b,
 };
 
 std::list<int> MPEGTS_AUDIO_STREAM_TYPE = {
-  // ISO/IEC 11172 Audio
-  0x03,
-  // ISO/IEC 13818-3 Audio
-  0x04,
-  // 13818-7 Audio with ADTS transport syntax
-  0x0f,
-  // ISO/IEC 14496-2 Visual
-  0x10,
-  // ISO/IEC 14496-3 Audio with the LATM transport syntax as defined
-  // in ISO/IEC 14496-3 / AMD 1
-  0x11,
-  // User private (commonly Dolby/AC-3 in ATSC)
-  0x81,
+    // ISO/IEC 11172 Audio
+    0x03,
+    // ISO/IEC 13818-3 Audio
+    0x04,
+    // 13818-7 Audio with ADTS transport syntax
+    0x0f,
+    // ISO/IEC 14496-2 Visual
+    0x10,
+    // ISO/IEC 14496-3 Audio with the LATM transport syntax as defined
+    // in ISO/IEC 14496-3 / AMD 1
+    0x11,
+    // User private (commonly Dolby/AC-3 in ATSC)
+    0x81,
 };
 
 void mpegts_process_packet(const Mpeg2Ts &mpeg2ts, status_t *status) {
   // look for PMT packets
-  if (mpeg2ts.parsed().psi_packet().program_map_section_size() == 0)
+  if (mpeg2ts.parsed().psi_packet().program_map_section_size() == 0) {
     return;
+  }
   status->audio_pid_l.clear();
   for (int i = 0; i < mpeg2ts.parsed().psi_packet().program_map_section_size();
-      ++i) {
+       ++i) {
     auto &program_map_section =
         mpeg2ts.parsed().psi_packet().program_map_section(i);
     for (int j = 0; j < program_map_section.stream_description_size(); ++j) {
       auto &stream_description = program_map_section.stream_description(j);
-      //fprintf(stdout, "%s\n", stream_description.ShortDebugString().c_str());
+      // fprintf(stdout, "%s\n", stream_description.ShortDebugString().c_str());
       if (std::find(MPEGTS_VIDEO_STREAM_TYPE.begin(),
-          MPEGTS_VIDEO_STREAM_TYPE.end(), stream_description.stream_type()) !=
-            MPEGTS_VIDEO_STREAM_TYPE.end()) {
+                    MPEGTS_VIDEO_STREAM_TYPE.end(),
+                    stream_description.stream_type()) !=
+          MPEGTS_VIDEO_STREAM_TYPE.end()) {
         status->video_pid_l.push_back(stream_description.elementary_pid());
       } else if (std::find(MPEGTS_AUDIO_STREAM_TYPE.begin(),
-          MPEGTS_AUDIO_STREAM_TYPE.end(), stream_description.stream_type()) !=
-            MPEGTS_AUDIO_STREAM_TYPE.end()) {
+                           MPEGTS_AUDIO_STREAM_TYPE.end(),
+                           stream_description.stream_type()) !=
+                 MPEGTS_AUDIO_STREAM_TYPE.end()) {
         status->audio_pid_l.push_back(stream_description.elementary_pid());
       }
     }
   }
 }
-
 
 int mpegts_read_binary(status_t *status) {
   FILE *fin = stdin;
@@ -465,10 +461,10 @@ int mpegts_read_binary(status_t *status) {
     char buf[1024] = {0};
     int bi = 0;
     for (auto &s : status->dump_fields) {
-        bi += snprintf(buf+bi, sizeof(buf)-bi, "%s,", s.c_str());
+      bi += snprintf(buf + bi, sizeof(buf) - bi, "%s,", s.c_str());
     }
     // remove last comma
-    buf[bi-1] = '\0';
+    buf[bi - 1] = '\0';
     fprintf(fout, "%s\n", buf);
   }
   uint8_t *buf;
@@ -486,8 +482,9 @@ int mpegts_read_binary(status_t *status) {
     else if (status->proc == PROC_TEST) {
       uint8_t out[MPEG_TS_PACKET_SIZE];
       int outlen = mpeg2ts_parser.DumpPacket(mpeg2ts, out, sizeof(out));
-      if (CheckTestResults(buf, len, out, outlen, mpeg2ts, status))
+      if (CheckTestResults(buf, len, out, outlen, mpeg2ts, status)) {
         return -1;
+      }
     }
     mpeg2ts_reader.Next(len);
   }
@@ -499,12 +496,11 @@ int mpegts_read_binary(status_t *status) {
   if (len < 0) {
     // lost sync
     fprintf(stderr, "error: lost sync of %s at byte %" PRId64 "\n",
-        status->infile != NULL ? status->infile : "stdin", bi);
+            status->infile != NULL ? status->infile : "stdin", bi);
     return -1;
   }
   return 0;
 }
-
 
 int mpegts_read_text(status_t *status) {
   FILE *fin = stdin;
@@ -547,7 +543,7 @@ int mpegts_read_text(status_t *status) {
     if (!google::protobuf::TextFormat::ParseFromString(bi, &mpeg2ts)) {
       printf("Failed to parse line into protobuf: \"%s\"\n", line);
       FILE *pFile = fopen("/tmp/in", "wb");
-      fwrite (bi.c_str(), sizeof(char), bi.length(), pFile);
+      fwrite(bi.c_str(), sizeof(char), bi.length(), pFile);
       fclose(pFile);
       exit(-1);
     }
@@ -556,7 +552,7 @@ int mpegts_read_text(status_t *status) {
     int outlen = mpeg2ts_parser.DumpPacket(mpeg2ts, out, sizeof(out));
     if (outlen < 0) {
       printf("Failed to dump protobuf: \"%s\"\n",
-          mpeg2ts.ShortDebugString().c_str());
+             mpeg2ts.ShortDebugString().c_str());
     } else {
       fwrite(out, outlen, sizeof(char), fout);
     }
@@ -569,9 +565,7 @@ int mpegts_read_text(status_t *status) {
   return 0;
 }
 
-
-int main(int argc, char** argv)
-{
+int main(int argc, char **argv) {
   status_t *status;
   int i;
 
@@ -590,18 +584,18 @@ int main(int argc, char** argv)
     printf("status->ignore_pts_delta = %i\n", status->ignore_pts_delta);
     printf("status->allow_raw_packets = %i\n", status->allow_raw_packets);
     printf("status->nrem = %i\n", status->nrem);
-    for (i=0; i<status->nrem; ++i)
+    for (i = 0; i < status->nrem; ++i)
       printf("status->rem[%i] = %s\n", i, status->rem[i]);
   }
 
-  if ((status->proc == PROC_TOTXT) ||
-      (status->proc == PROC_TEST) ||
-      (status->proc == PROC_DUMP))
+  if ((status->proc == PROC_TOTXT) || (status->proc == PROC_TEST) ||
+      (status->proc == PROC_DUMP)) {
     return mpegts_read_binary(status);
+  }
 
-  if (status->proc == PROC_TOBIN)
+  if (status->proc == PROC_TOBIN) {
     return mpegts_read_text(status);
+  }
 
   return 0;
 }
-
