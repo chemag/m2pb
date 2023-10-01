@@ -25,32 +25,35 @@ print one line per packet. For example:
 
 
 ```
-$ m2pb --packet --byte --pid --pts --parsed.pes_packet.dts --type dump in.ts
-0 0 0 - - -
-1 188 480 - - -
-2 376 481 183003 180000 I
-3 564 481 - - -
-4 752 481 - - -
-5 940 481 - - -
-6 1128 481 - - -
-7 1316 481 - - -
-8 1504 481 - - -
-9 1692 481 - - -
-10 1880 481 - - -
-11 2068 481 - - -
-12 2256 481 - - -
-13 2444 481 - - -
-14 2632 481 - - -
-15 2820 481 - - -
-16 3008 481 - - -
-17 3196 481 198018 183003 P
-18 3384 481 186006 - B
-19 3572 481 189009 - B
-20 3760 481 192012 - B
-21 3948 481 195015 - B
-22 4136 481 213033 198018 P
+$ m2pb --packet --byte --pid --pts --parsed.pes_packet.dts --type dump -i ../bin/in.ts
+packet,byte,parsed.header.pid,parsed.pes_packet.pts,parsed.pes_packet.dts,type
+0,0,0,,,?
+1,188,256,,,?
+2,376,257,901502,900000,X
+3,564,257,,,X
+4,752,257,,,X
+5,940,257,,,X
+6,1128,257,,,X
+7,1316,257,,,X
+8,1504,257,,,X
+9,1692,257,,,X
+10,1880,257,,,X
+11,2068,257,,,X
+12,2256,257,,,X
+13,2444,257,,,X
+14,2632,257,,,X
+15,2820,257,,,X
+16,3008,257,,,X
+17,3196,257,,,X
+18,3384,257,,,X
+19,3572,257,,,X
+20,3760,257,,,X
 ...
-8116 1525808 482 183003 - 1
+195,36660,257,910511,906006,X
+196,36848,257,,,X
+197,37036,257,,,X
+198,37224,257,,,X
+199,37412,257,,,X
 ```
 
 Fields can be obtained from 3 places:
@@ -78,31 +81,30 @@ The text format is the short text protobuf one.
 m2pb can convert an mpeg-ts stream to text:
 
 ```
-$ m2pb totxt in.ts
+$ ./m2pb --proc totxt -i ../bin/in.ts
 packet: 0 byte: 0 parsed { header { transport_error_indicator: false
-  payload_unit_start_indicator: false transport_priority: false pid: 481
-  transport_scrambling_control: 2 adaptation_field_exists: false
-  payload_exists: true continuity_counter: 15 } data_bytes: "\320\352
-  \001\220\355\311H \325@\225\177\340I\006\005\342\017`\300\221;I~\366
-  \247\370\364\201\222y\310\372\302\275.o\362\254\324,x;\376u\313\'
-  \365\375\0025\013\0068\364_m\2767p\301\024\'\367a\312$\257fK\244
-  \354\235\275=\300\003p\036\335\233P\334\341Ao\246\223o\215\367\370
-  #\002\322s\370\023b\300\251P[T\235\240\036\022\332S\023\333+{\310
-  {Q\344\255\345\237W\326\3502\231\262V\003\211]\326K \200nO\306\270
-  \325\301\262\220\340d\307\006\272\235P\254f\\\3353\242\257r\217\202
-  \035\214\342\203\344\3111\225K\200r\014\317\376\037l\t 3\215\335I\336\327" }
+  payload_unit_start_indicator: true transport_priority: false pid: 0
+  transport_scrambling_control: 0 adaptation_field_exists: false
+  payload_exists: true continuity_counter: 0 } psi_packet {
+  pointer_field: "" program_association_section { table_id: 0
+  section_length: 13 transport_stream_id: 1 version_number: 0
+  current_next_indicator: true section_number: 0
+  last_section_number: 0 program_information { program_number: 1
+  program_map_pid: 256 } crc_32: -386310531 } } data_bytes:
+  "\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377
+   \377\377\377\377\377\377\377\377\377\377\377\377\377\377\377
+   \377\377\377\377\377\377\377\377\377\377\377\377\377\377\377
+   \377\377\377\377\377\377\377\377\377\377\377\377\377\377\377
+   \377\377\377\377\377\377\377\377\377\377\377\377\377\377\377
+   \377\377\377\377\377\377\377\377\377\377\377\377\377\377\377
+   \377\377\377\377\377\377\377\377\377\377\377\377\377\377\377
+   \377\377\377\377\377\377\377\377\377\377\377\377\377\377\377
+   \377\377\377\377\377\377\377\377\377\377\377\377\377\377\377
+   \377\377\377\377\377\377\377\377\377\377\377\377\377\377\377
+   \377\377\377\377\377\377\377\377\377\377\377\377\377\377\377
+   \377\377" }
 packet: 1 byte: 188 parsed { header { transport_error_indicator: false
-  payload_unit_start_indicator: false transport_priority: false pid: 481
-  transport_scrambling_control: 2 adaptation_field_exists: false
-  payload_exists: true continuity_counter: 0 } data_bytes: "\202\305i
-  \355\207\373/m6X\207^\036\2336\2260U^[\'3\330\267\340\214\342>\340\206
-  \317\207\221v7\264\3459\350PS\265\212\372\376\247^3\246l5\306E\035a
-  \234\326tWz|\307X\307U\271\222H1g9\031\"\302C\305\255\237,\254.4f\240
-  \266IX0\207\220z\203\223\026\"}\311\324\307\033\206\373\363\233\224
-  \306P\207\257\365\354\362\013\271O\351\022\231\240\340t\3145#\206\024
-  Pk\275?\346\337\337\305\010\370S\020<D\004\275\332\201\003\351\377\217
-  KY\272A\341\367\245\262\325I\365\346q\274w\306\274\255\234\372j\272d
-  \235\\\262\t<\335\263F\207\003\232\376\302" }
+  ...
 ...
 ```
 
@@ -113,7 +115,7 @@ m2pb totxt always produces one line per packet.
 m2pb can convert an mpeg-ts text stream back into a binary one:
 
 ```
-$ diff in.ts <(m2pb totxt in.ts | m2pb tobin -)
+$ diff ../bin/in.ts <(./m2pb --proc totxt -i ../bin/in.ts | ./m2pb --proc tobin)
 $ echo $?
 0
 ```
@@ -138,10 +140,10 @@ $ ffmpeg -i /tmp/in.ts
 ...
     Stream #0:1[0x1e2](und): Audio: ac3 (AC-3 / 0x332D4341), 48000 Hz,
         stereo, fltp, 192 kb/s
-$ m2pb totxt /tmp/in.ts | \
+$ m2pb --proc totxt -i ../bin/in.ts | \
   sed -e 's/ pid: 482/ pid:582/' | \
   sed -e 's/elementary_pid: 482/elementary_pid: 582/' | \
-  m2pb tobin - /tmp/out.ts
+  m2pb --proc tobin -i - -o /tmp/out.ts
 $ ffmpeg -i /tmp/out.ts
 ...
     Stream #0:1[0x246](und): Audio: ac3 (AC-3 / 0x332D4341), 48000 Hz,

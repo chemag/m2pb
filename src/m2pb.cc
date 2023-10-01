@@ -28,13 +28,13 @@
 #include "pts_utils.h"
 
 typedef enum {
-  ACTION_INVALID = -1,
-  ACTION_NONE = 0,
-  ACTION_TOTXT = 1,
-  ACTION_TOBIN = 2,
-  ACTION_TEST = 3,
-  ACTION_DUMP = 3,
-} ActionEnum;
+  PROC_INVALID = -1,
+  PROC_NONE = 0,
+  PROC_TOTXT = 1,
+  PROC_TOBIN = 2,
+  PROC_TEST = 3,
+  PROC_DUMP = 3,
+} ProcEnum;
 
 /* default values */
 #define DEFAULT_WRITE 0
@@ -53,7 +53,7 @@ std::list<std::string> ACCESSOR_EXTRA_LIST = {
 typedef struct status_t
 {
   int sync_gap;
-  ActionEnum action;
+  ProcEnum proc;
   int debug;
   int ignore_pts_delta;
   int allow_raw_packets;
@@ -63,8 +63,8 @@ typedef struct status_t
   std::list<int> video_pid_l;
   std::list<int> audio_pid_l;
   std::list<std::string> dump_fields;
-  char *in;
-  char *out;
+  char *infile;
+  char *outfile;
   // args-only
   int nrem;
   char** rem;
@@ -77,7 +77,7 @@ extern int optind, opterr, optopt;
 
 void usage(char *name)
 {
-  fprintf(stderr, "usage: %s [options] <command> [in.ts] [out.ts]\n", name);
+  fprintf(stderr, "usage: %s [options] -p <proc> -i [infile.ts] -o [outfile.ts]\n", name);
   fprintf(stderr, "where options are:\n");
   fprintf(stderr, "\t-s <sync_gap>:\t\tMaximum sync gap (%i)\n",
       DEFAULT_MAXIMUM_SYNC_GAP);
@@ -86,7 +86,7 @@ void usage(char *name)
   fprintf(stderr, "\t-d:\t\tIncrease debug verbosity\n");
   fprintf(stderr, "\t-q:\t\tQuiet mode (zero debug verbosity)\n");
   fprintf(stderr, "\t-h:\t\tHelp\n");
-  fprintf(stderr, "\nSome valid commands:\n");
+  fprintf(stderr, "\nSome valid <proc> commands:\n");
   fprintf(stderr, "\ttotxt: convert binary representation to protobuf\n");
   fprintf(stderr, "\ttobin: convert protobuf representation to binary\n");
   fprintf(stderr, "\tdump: ipsumdump-like print\n");
@@ -102,19 +102,19 @@ void usage(char *name)
 }
 
 
-ActionEnum GetAction(char *cmd) {
+ProcEnum GetProc(char *cmd) {
   if (strlen(cmd) == 0)
-    return ACTION_NONE;
+    return PROC_NONE;
   else if (strcmp(cmd, "totxt") == 0)
-    return ACTION_TOTXT;
+    return PROC_TOTXT;
   else if (strcmp(cmd, "tobin") == 0)
-    return ACTION_TOBIN;
+    return PROC_TOBIN;
   else if (strcmp(cmd, "test") == 0)
-    return ACTION_TEST;
+    return PROC_TEST;
   else if (strcmp(cmd, "dump") == 0)
-    return ACTION_DUMP;
+    return PROC_DUMP;
   else
-    return ACTION_INVALID;
+    return PROC_INVALID;
 }
 
 
@@ -127,6 +127,9 @@ status_t *parse_args(int argc, char** argv)
 
   // default status values
   status.sync_gap = DEFAULT_MAXIMUM_SYNC_GAP;
+  status.proc = PROC_INVALID;
+  status.infile = NULL;
+  status.outfile = NULL;
   status.debug = DEFAULT_DEBUG;
   status.ignore_pts_delta = 0;
   status.allow_raw_packets = 1;
@@ -142,12 +145,15 @@ status_t *parse_args(int argc, char** argv)
     {"no-raw", no_argument, &status.allow_raw_packets, 0},
     // matching options to short options
     {"sync-gap", required_argument, NULL, 's'},
+    {"proc", required_argument, NULL, 'p'},
+    {"infile", required_argument, NULL, 'i'},
+    {"outfile", required_argument, NULL, 'o'},
     {"help", no_argument, NULL, 'h'},
     {"quiet", no_argument, NULL, 'q'},
     {NULL, 0, NULL, 0},
   };
 
-  while ((arg = getopt_long(argc, argv, ":dqs:", longopts, &optindex)) != -1) {
+  while ((arg = getopt_long(argc, argv, ":dqs:p:i:o:", longopts, &optindex)) != -1) {
     switch (arg) {
       case 0:  // long options
         break;
@@ -169,6 +175,26 @@ status_t *parse_args(int argc, char** argv)
               status.sync_gap, SYNC_GAP_MAXIMUM);
           exit(-1);
         }
+        break;
+
+      case 'p':
+        /* proc */
+        status.proc = GetProc(optarg);
+        if (status.proc == PROC_INVALID) {
+          fprintf(stderr, "error: invalid proc: \"%s\"\n", optarg);
+          usage(argv[0]);
+          exit(-1);
+        }
+        break;
+
+      case 'i':
+        /* infile */
+        status.infile = optarg;
+        break;
+
+      case 'o':
+        /* outfile */
+        status.outfile = optarg;
         break;
 
       case 'd':
@@ -218,34 +244,6 @@ status_t *parse_args(int argc, char** argv)
 
       }
     }
-
-  /* require a valid command */
-  if (argc - optind < 1) {
-    fprintf(stderr, "error: need valid command\n");
-    usage(argv[0]);
-    exit(-1);
-  }
-  status.action = GetAction(argv[optind++]);
-  if (status.action == ACTION_INVALID) {
-    fprintf(stderr, "error: invalid action: \"%s\"\n", argv[optind-1]);
-    usage(argv[0]);
-    exit(-1);
-  }
-
-  /* check for an in file */
-  if (argc - optind < 1) {
-    // use stdin
-    status.in = NULL;
-  } else {
-    status.in = argv[optind++];
-    /* check for an out file */
-    if (argc - optind < 1) {
-      // use stdout
-      status.out = NULL;
-    } else {
-      status.out = argv[optind++];
-    }
-  }
 
   /* store remaining arguments */
   status.nrem = argc - optind;
@@ -318,7 +316,7 @@ void DumpLine(const Mpeg2Ts &mpeg2ts, status_t *status, FILE* fout) {
   for (auto &s : status->dump_fields) {
     // implement the extra accessors
     if (s == "type") {
-      char stype = '-';
+      char stype = '';
       if (mpeg2ts.parsed().header().has_pid()) {
         int pid = mpeg2ts.parsed().header().pid();
         if (std::find(status->video_pid_l.begin(),
@@ -333,7 +331,7 @@ void DumpLine(const Mpeg2Ts &mpeg2ts, status_t *status, FILE* fout) {
             stype = (frame_type == 1) ? 'I' :
                 ((frame_type == 2) ? 'P' :
                 ((frame_type == 3) ? 'B' :
-                ((frame_type == 4) ? 'V' : '-')));
+                ((frame_type == 4) ? 'V' : 'X')));
           }
         } else if (std::find(status->audio_pid_l.begin(),
             status->audio_pid_l.end(), pid) != status->audio_pid_l.end()) {
@@ -345,7 +343,7 @@ void DumpLine(const Mpeg2Ts &mpeg2ts, status_t *status, FILE* fout) {
           }
         }
       }
-      bi += snprintf(buf+bi, sizeof(buf)-bi, "%c ", stype);
+      bi += snprintf(buf+bi, sizeof(buf)-bi, "%c,", stype);
     } else if (s == "syncframe") {
       int syncframe_distance = -1;
       if (mpeg2ts.parsed().header().has_pid()) {
@@ -362,21 +360,23 @@ void DumpLine(const Mpeg2Ts &mpeg2ts, status_t *status, FILE* fout) {
         }
       }
       if (syncframe_distance != -1) {
-        bi += snprintf(buf+bi, sizeof(buf)-bi, "%i ", syncframe_distance);
+        bi += snprintf(buf+bi, sizeof(buf)-bi, "%i,", syncframe_distance);
       } else {
-        bi += snprintf(buf+bi, sizeof(buf)-bi, "- ");
+        bi += snprintf(buf+bi, sizeof(buf)-bi, ",");
       }
     } else {
       // known protobuf field
       std::string value;
       if (get_field_value(mpeg2ts, s, &value)) {
-        bi += snprintf(buf+bi, sizeof(buf)-bi, "%s ", value.c_str());
+        bi += snprintf(buf+bi, sizeof(buf)-bi, "%s,", value.c_str());
       } else {
-        bi += snprintf(buf+bi, sizeof(buf)-bi, "- ");
+        bi += snprintf(buf+bi, sizeof(buf)-bi, ",");
       }
     }
   }
 
+  // remove last comma
+  buf[bi-1] = '\0';
   fprintf(fout, "%s\n", buf);
   return;
 }
@@ -436,21 +436,21 @@ void mpegts_process_packet(const Mpeg2Ts &mpeg2ts, status_t *status) {
 
 int mpegts_read_binary(status_t *status) {
   FILE *fin = stdin;
-  if (status->in != NULL && (strcmp(status->in, "-") != 0)) {
-    /* open in file */
-    fin = fopen(status->in, "r");
+  if (status->infile != NULL && (strcmp(status->infile, "-") != 0)) {
+    /* open infile */
+    fin = fopen(status->infile, "r");
     if (fin == NULL) {
-      fprintf(stderr, "error: cannot open in file: %s\n", status->in);
+      fprintf(stderr, "error: cannot open infile: %s\n", status->infile);
       return -1;
     }
   }
 
   FILE *fout = stdout;
-  if (status->out != NULL && (strcmp(status->out, "-") != 0)) {
-    /* open out file */
-    fout = fopen(status->out, "w+");
+  if (status->outfile != NULL && (strcmp(status->outfile, "-") != 0)) {
+    /* open outfile */
+    fout = fopen(status->outfile, "w+");
     if (fout == NULL) {
-      fprintf(stderr, "error: cannot open out file: %s\n", status->out);
+      fprintf(stderr, "error: cannot open outfile: %s\n", status->outfile);
       return -1;
     }
   }
@@ -460,6 +460,17 @@ int mpegts_read_binary(status_t *status) {
   Mpeg2TsParser mpeg2ts_parser(true);
   Mpeg2Ts mpeg2ts;
 
+  // write output header
+  if (status->proc == PROC_DUMP) {
+    char buf[1024] = {0};
+    int bi = 0;
+    for (auto &s : status->dump_fields) {
+        bi += snprintf(buf+bi, sizeof(buf)-bi, "%s,", s.c_str());
+    }
+    // remove last comma
+    buf[bi-1] = '\0';
+    fprintf(fout, "%s\n", buf);
+  }
   uint8_t *buf;
   int len;
   int64_t pi;
@@ -468,11 +479,11 @@ int mpegts_read_binary(status_t *status) {
     len = mpeg2ts_parser.ParsePacket(pi, bi, buf, len, &mpeg2ts);
     // check whether the packet is interesting
     mpegts_process_packet(mpeg2ts, status);
-    if (status->action == ACTION_TOTXT)
+    if (status->proc == PROC_TOTXT)
       fprintf(fout, "%s\n", mpeg2ts.ShortDebugString().c_str());
-    else if (status->action == ACTION_DUMP)
+    else if (status->proc == PROC_DUMP)
       DumpLine(mpeg2ts, status, fout);
-    else if (status->action == ACTION_TEST) {
+    else if (status->proc == PROC_TEST) {
       uint8_t out[MPEG_TS_PACKET_SIZE];
       int outlen = mpeg2ts_parser.DumpPacket(mpeg2ts, out, sizeof(out));
       if (CheckTestResults(buf, len, out, outlen, mpeg2ts, status))
@@ -488,7 +499,7 @@ int mpegts_read_binary(status_t *status) {
   if (len < 0) {
     // lost sync
     fprintf(stderr, "error: lost sync of %s at byte %" PRId64 "\n",
-        status->in != NULL ? status->in : "stdin", bi);
+        status->infile != NULL ? status->infile : "stdin", bi);
     return -1;
   }
   return 0;
@@ -497,21 +508,21 @@ int mpegts_read_binary(status_t *status) {
 
 int mpegts_read_text(status_t *status) {
   FILE *fin = stdin;
-  if (status->in != NULL && (strcmp(status->in, "-") != 0)) {
-    /* open in file */
-    fin = fopen(status->in, "r");
+  if (status->infile != NULL && (strcmp(status->infile, "-") != 0)) {
+    /* open infile */
+    fin = fopen(status->infile, "r");
     if (fin == NULL) {
-      fprintf(stderr, "error: cannot open in file: %s\n", status->in);
+      fprintf(stderr, "error: cannot open infile: %s\n", status->infile);
       return -1;
     }
   }
 
   FILE *fout = stdout;
-  if (status->out != NULL && (strcmp(status->out, "-") != 0)) {
-    /* open out file */
-    fout = fopen(status->out, "w+");
+  if (status->outfile != NULL && (strcmp(status->outfile, "-") != 0)) {
+    /* open outfile */
+    fout = fopen(status->outfile, "w+");
     if (fout == NULL) {
-      fprintf(stderr, "error: cannot open out file: %s\n", status->out);
+      fprintf(stderr, "error: cannot open outfile: %s\n", status->outfile);
       return -1;
     }
   }
@@ -573,7 +584,7 @@ int main(int argc, char** argv)
 
   /* print args */
   if (status->debug > 1) {
-    printf("status->action = %i\n", status->action);
+    printf("status->proc = %i\n", status->proc);
     printf("status->debug = %i\n", status->debug);
     printf("status->sync_gap = %i\n", status->sync_gap);
     printf("status->ignore_pts_delta = %i\n", status->ignore_pts_delta);
@@ -583,12 +594,12 @@ int main(int argc, char** argv)
       printf("status->rem[%i] = %s\n", i, status->rem[i]);
   }
 
-  if ((status->action == ACTION_TOTXT) ||
-      (status->action == ACTION_TEST) ||
-      (status->action == ACTION_DUMP))
+  if ((status->proc == PROC_TOTXT) ||
+      (status->proc == PROC_TEST) ||
+      (status->proc == PROC_DUMP))
     return mpegts_read_binary(status);
 
-  if (status->action == ACTION_TOBIN)
+  if (status->proc == PROC_TOBIN)
     return mpegts_read_text(status);
 
   return 0;
