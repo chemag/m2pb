@@ -56,10 +56,10 @@ $ m2pb --packet --byte --pid --pts --parsed.pes_packet.dts --type dump in.ts
 Fields can be obtained from 3 places:
 
 * direct protobuf field name. In our example, we are using
-  the flag "--parsed.pes_packet.dts",
-* protobuf shortcut: the "--pts" flag is a shortcut for
-  "--parsed.pes_packet.pts",
-* function-associated: the "--type" and "--syncframe" flags have already
+  the flag "`--parsed.pes_packet.dts`",
+* protobuf shortcut: the "`--pts`" flag is a shortcut for
+  "`--parsed.pes_packet.pts`",
+* function-associated: the "`--type`" and "`--syncframe`" flags have already
   been associated to a given function. "type" prints the h.264 video frame
   type (I, P, or B) and the audio stream number. "syncframe" prints, for
   audio frames, the distance to the first ac-3 syncframe from the
@@ -186,28 +186,26 @@ that is not an mpeg-ts packet as a non-parsed packet).
 
 
 
-## 4.2. Install Instructions
+# 5. Installation
+
+## 5.1. Install Preparation
 
 The main dependency is protobuf.
 
 On Ubuntu, use:
-
 ```
-$ sudo apt-get install protobuf-compiler libprotobuf-dev
-```
-
-In order to run the tests, you also need
-[googletest](https://github.com/google/googletest).
-
-On Ubuntu, use:
-
-```
-$ sudo apt-get install libgtest-dev
-$ cd /usr/src/gtest
-$ sudo cmake .
-$ sudo make
-$ sudo mv libg* /usr/lib/
+$ sudo apt-get install protobuf-compiler libprotobuf-dev googletest googletest-tools
 ```
 
-From [here](http://askubuntu.com/questions/145887/why-no-library-files-installed-for-google-test).
+On Fedora, use:
+```
+$ sudo dnf install protobuf-c-compiler protobuf-c-devel gtest-devel
+```
 
+
+## 5.2. Install m2pb
+
+```
+$ cd src
+$ make -j
+```
